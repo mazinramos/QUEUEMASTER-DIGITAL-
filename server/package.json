@@ -1,0 +1,30 @@
+{
+  "name": "queuemaster-digital-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QueueMaster Digital - local-first clinic queue server",
+  "main": "src/server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/database/migrate.js",
+    "seed": "node src/database/seed-dev.js",
+    "test": "node --test --test-concurrency=1 tests/"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "better-sqlite3": "^11.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
