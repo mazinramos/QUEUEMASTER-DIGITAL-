@@ -59,7 +59,7 @@ function seed(db, o = {}) {
 }
 
 function setup(file, opts) {
-  process.env.TOKEN_PEPPER = process.env.TOKEN_PEPPER || 'test-pepper-0123456789abcdef';
+  process.env.TICKET_TOKEN_PEPPER = process.env.TICKET_TOKEN_PEPPER || 'test-pepper-0123456789abcdef';
   process.env.QM_SILENT = process.env.QM_SILENT || '1';
   const db = openDb(file);
   migrate(db);

@@ -11,7 +11,7 @@ const q = require('./queueDb');
 test('إعادة تشغيل السيرفر (عملية جديدة): التذاكر باقية والتوكن يعمل والترقيم يكمل', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qm-restart-'));
   const file = path.join(dir, 'q.db');
-  const env = Object.assign({}, process.env, { TOKEN_PEPPER: 'test-pepper-0123456789abcdef', QM_SILENT: '1' });
+  const env = Object.assign({}, process.env, { TICKET_TOKEN_PEPPER: 'test-pepper-0123456789abcdef', QM_SILENT: '1' });
   const child = path.join(__dirname, 'queueRestart.child.js');
   { const { db } = H.setup(file); db.close(); }
   const first = JSON.parse(execFileSync(process.execPath, [child, file, 'issue'], { env }).toString());
@@ -21,7 +21,7 @@ test('إعادة تشغيل السيرفر (عملية جديدة): التذاك
   assert.equal(second.ahead, 1);
   assert.equal(second.nextNumber, 'A-003');
   // pepper مختلف بعد "إعادة التشغيل" = التوكن القديم يصبح غير صالح (تأكيد أن الـ pepper ثابت يجب أن يبقى في .env)
-  const env2 = Object.assign({}, env, { TOKEN_PEPPER: 'another-pepper-0123456789ab' });
+  const env2 = Object.assign({}, env, { TICKET_TOKEN_PEPPER: 'another-pepper-0123456789ab' });
   assert.throws(() => execFileSync(process.execPath, [child, file, 'read', first.tokens[1]], { env: env2, stdio: 'pipe' }));
   fs.rmSync(dir, { recursive: true, force: true });
 });

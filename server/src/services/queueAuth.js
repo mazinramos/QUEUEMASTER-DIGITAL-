@@ -16,8 +16,13 @@ function requireStaff(minRole = 'staff') {
     try {
       const id = staffIdFrom(req);
       if (!id) throw new QueueError('UNAUTHENTICATED', 'Login required');
-      const row = q.getDb().prepare('SELECT id, clinic_id, role, is_active FROM staff WHERE id=?').get(id);
+      const row = q.getDb().prepare('SELECT id, clinic_id, role, is_active, must_change_password FROM staff WHERE id=?').get(id);
       if (!row || !row.is_active) throw new QueueError('UNAUTHENTICATED', 'Login required');
+      if (row.must_change_password) {
+        const e = new QueueError('FORBIDDEN', 'Password change required');
+        e.code = 'PASSWORD_CHANGE_REQUIRED';
+        throw e;
+      }
       if (RANK[row.role] < RANK[minRole]) throw new QueueError('FORBIDDEN', 'Insufficient role');
       req.qmStaffId = row.id;
       next();

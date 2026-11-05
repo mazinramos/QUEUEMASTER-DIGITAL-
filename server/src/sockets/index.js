@@ -3,9 +3,10 @@
 //
 // الاستعمال (من server.js — حساب 1):
 //   const sockets = require('./sockets');
-//   sockets.init(httpServer, { sessionMiddleware, resolveDisplay });
+//   sockets.init(httpServer);   // يكفي — الافتراضيات تتوافق مع middleware/session.js عند حساب 1
+//   (اختياري) sockets.init(httpServer, { sessionMiddleware, resolveDisplay, startWorkers:false });
 //
-//  - sessionMiddleware: نفس middleware الجلسات في express (يُركَّب على handshake ليقرأ كوكي qm.sid).
+//  - sessionMiddleware: الافتراضي loadSession من middleware/session.js (كوكي qm.sid => req.staff).
 //  - resolveDisplay(cookieValue) -> { displayId, clinicId } | null : يتحقق من كوكي qm.display (حساب 4 يملك الاقتران).
 //    إن لم يُمرَّر، نحاول require('../services/displayAuth').resolveDisplay ثم نرفض اتصالات الشاشات.
 // باقي الأكواد تستدعي emitToClinic / emitToRoom ولا تلمس Socket.IO مباشرة.
@@ -88,7 +89,10 @@ function init(httpServer, opts = {}) {
     pingInterval: 20000, pingTimeout: 20000,
   });
   const resolveDisplay = opts.resolveDisplay || defaultResolveDisplay();
-  if (opts.sessionMiddleware) io.engine.use(opts.sessionMiddleware);
+  // الافتراضي: loadSession الخاص بحساب 1 (يقرأ كوكي qm.sid ويضع req.staff) — لا حاجة لتمرير شيء من server.js
+  let sessionMiddleware = opts.sessionMiddleware;
+  if (!sessionMiddleware) { try { sessionMiddleware = require('../middleware/session').loadSession; } catch (_) { sessionMiddleware = null; } }
+  if (sessionMiddleware) io.engine.use(sessionMiddleware);
 
   io.use((socket, next) => {
     try {
@@ -151,10 +155,15 @@ function init(httpServer, opts = {}) {
   });
 
   unsubscribe = bus.subscribe(deliver);
+  // العاملان الخلفيان (SMS + sync): نشغّلهما من هنا لأن server.js لا يعرفهما؛ startWorkers:false لإيقافه (الاختبارات)
+  if (opts.startWorkers !== false) {
+    try { require('../services/queueWorkers').startAll(opts.workers || {}); } catch (e) { log.error('workers failed to start', { message: e.message }); }
+  }
   return io;
 }
 
 async function close() {
+  try { require('../services/queueWorkers').stopAll(); } catch (_) { /* لم تبدأ */ }
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   if (io) { const s = io; io = null; await new Promise((r) => s.close(r)); }
 }

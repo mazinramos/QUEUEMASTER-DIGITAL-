@@ -31,12 +31,22 @@ function businessDate(date, timezone) {
 }
 
 // ---- التوكن: 32 بايت عشوائي، يُخزَّن SHA-256(token + pepper) فقط ----
+let devWarned = false;
 function pepper() {
-  const p = process.env.TOKEN_PEPPER;
-  if (!p || p.length < 16) {
-    throw new Error('TOKEN_PEPPER must be set in .env (min 16 chars). Never commit it.');
+  const p = process.env.TICKET_TOKEN_PEPPER || process.env.TOKEN_PEPPER;
+  if (p && p.length >= 16) return p;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('TICKET_TOKEN_PEPPER must be set in .env (min 16 chars). Never commit it.');
   }
-  return p;
+  // تطوير فقط: قيمة config المؤقتة (عشوائية لكل تشغيل) => التوكنات القديمة تبطل بعد إعادة التشغيل
+  try {
+    const c = require('../config').ticketTokenPepper;
+    if (c && c.length >= 16) {
+      if (!devWarned) { devWarned = true; require('./queueLog').warn('TICKET_TOKEN_PEPPER not set: using an ephemeral dev pepper; tickets will not survive a restart'); }
+      return c;
+    }
+  } catch (_) { /* لا config */ }
+  throw new Error('TICKET_TOKEN_PEPPER must be set in .env (min 16 chars). Never commit it.');
 }
 function newToken() { return crypto.randomBytes(32).toString('base64url'); }
 function hashToken(token) {

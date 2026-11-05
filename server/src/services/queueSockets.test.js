@@ -21,6 +21,7 @@ async function boot() {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
   sockets.init(server, {
+    startWorkers: false,
     // يحاكي express-session: كوكي fake=staff:<id>
     sessionMiddleware: (req, _res, next) => {
       const m = /fake=staff:(\d+)/.exec(req.headers.cookie || '');
