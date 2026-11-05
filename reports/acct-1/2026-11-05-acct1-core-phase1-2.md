@@ -31,7 +31,7 @@
 5. **اسم المستخدم فريد لكل عيادة فقط** (حسب المخطط)، فإن تكرر عبر عيادات يطلب login حقل `clinicId`.
 6. المستخدم بـ `must_change_password=1` يُمنع من كل API عدا `/api/auth/*` (كود `PASSWORD_CHANGE_REQUIRED`).
 7. `csrfProtect` يعفي `/api/public/*` و`/api/display/*` (لهما آلياتهما: توكن التذكرة وكوكي الشاشة).
-8. `npm audit` أبلغ عن ثغرة واحدة high في تبعية ولم تُعالج (لم أفحص أيها بعد).
+8. `npm audit` أبلغ عن ثغرة high في zod (<4.6.6، استنزاف ذاكرة)، فرُقّيت إلى zod 4.6.7 وأُعيد تشغيل الاختبارات: 30/30 و`npm audit` = 0 ثغرات.
 
 ## طلبات من حسابات أخرى / تعديل عقود
 - **حساب 2:** استبدال `sockets/index.js` (stub). يمكن استخدام `req.staff` / `req.clinicId` / `requireRole` / `requirePermission('can_cancel')` / `validate` / `writeAudit(req, action, entity, id, details)` من `server/src/middleware`. الجلسة لا تُمرَّر تلقائياً لـ Socket.IO: استخدموا `parseCookies` + `hashSid` من `middleware/session.js` ثم قراءة `sessions`.
@@ -39,4 +39,4 @@
 - **المشرف:** أضيفوا لـ api-contract أن ردّ login/me يحمل `csrfToken` و`mustChangePassword`، وأن `POST /api/admin/staff` و`reset-password` يعيدان `temporaryPassword` مرة واحدة.
 
 ## الخطوة التالية المقترحة
-دمج PR المرحلة 1 ثم 2، وأن يبدأ حساب 2 فوقهما. أفحص ثغرة `npm audit` وأجرّب التثبيت على Windows إن توفرت بيئة.
+دمج PR المرحلة 1 ثم 2، وأن يبدأ حساب 2 فوقهما. تجربة التثبيت على Windows 11 إن توفرت بيئة.
