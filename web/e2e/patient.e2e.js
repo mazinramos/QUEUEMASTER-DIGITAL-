@@ -132,9 +132,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await step('recover: wrong number -> not found; right number -> ticket opens', async () => {
     const p3 = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
     await p3.goto(BASE + '/patient/'); await p3.waitForSelector('[data-act="recover"]'); await p3.click('[data-act="recover"]');
-    await p3.fill('#rec-number', 'zz'); await p3.click('[data-act="do-recover"]'); await p3.waitForSelector('.qm-banner--error');
-    await p3.fill('#rec-number', 'Z-999'); await p3.click('[data-act="do-recover"]'); await p3.waitForFunction(() => /لم نجد/.test(document.body.textContent));
-    await p3.fill('#rec-number', number.toLowerCase().replace('-', '')); await p3.click('[data-act="do-recover"]'); await p3.waitForSelector('#tk-number');
+    await p3.fill('#rec-number', 'zz'); await p3.fill('#rec-last4', '4567'); await p3.click('[data-act="do-recover"]'); await p3.waitForSelector('.qm-banner--error');
+    await p3.fill('#rec-number', number); await p3.fill('#rec-last4', ''); await p3.click('[data-act="do-recover"]'); await p3.waitForFunction(() => /4 أرقام/.test(document.querySelector('.qm-banner--error').textContent));
+    await p3.fill('#rec-last4', '4567');
+    await p3.fill('#rec-number', 'Z-999'); await p3.fill('#rec-last4', '4567'); await p3.click('[data-act="do-recover"]'); await p3.waitForFunction(() => /لم نجد/.test(document.body.textContent));
+    await p3.fill('#rec-number', number.toLowerCase().replace('-', '')); await p3.fill('#rec-last4', '4567'); await p3.click('[data-act="do-recover"]'); await p3.waitForSelector('#tk-number');
     assert.equal((await p3.textContent('#tk-number')).trim(), number); await p3.context().close();
   });
   await step('unknown/expired token shows the expired notice and returns to welcome', async () => {

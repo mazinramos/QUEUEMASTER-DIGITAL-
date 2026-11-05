@@ -15,7 +15,7 @@ const users = {
   staff: { id: 1, password: 'staff123', fullName: 'نور الهدى', role: 'staff', can_skip_return: 0, can_cancel: 0, can_transfer: 0, services: [1, 2], counters: [1, 2] },
   manager: { id: 2, password: 'manager123', fullName: 'Manager Sam', role: 'manager', can_skip_return: 1, can_cancel: 1, can_transfer: 1, services: [1, 2, 3], counters: [1, 2] } };
 const sessions = new Map();
-const tickets = []; const seq = {};
+const tickets = []; const seq = {}; let gseq = 0;
 let offline = false;
 
 function pub(t) { // public ticket view
@@ -31,7 +31,7 @@ function staffView(t) {
 }
 function issue(svc) {
   seq[svc.id] = (seq[svc.id] || 0) + 1;
-  const t = { publicId: rid(6), token: rid(16), service: svc.id, seq: seq[svc.id], number: svc.prefix + '-' + String(seq[svc.id]).padStart(3, '0'), status: 'waiting', issuedAt: now() };
+  const t = { publicId: rid(6), token: rid(16), service: svc.id, seq: seq[svc.id], g: ++gseq, number: svc.prefix + '-' + String(seq[svc.id]).padStart(3, '0'), status: 'waiting', issuedAt: now() };
   tickets.push(t); return t;
 }
 
@@ -84,9 +84,9 @@ function route(req, res, url, body) {
   let mm;
   if ((mm = p.match(/^\/api\/public\/tickets\/([0-9a-f]+)\/sms$/)) && m === 'POST') {
     const t = tickets.find(x => x.token === mm[1]); if (!t) return fail(res, 404, 'NOT_FOUND');
-    if (!/^\+?\d{7,15}$/.test(String(body.phone || ''))) return fail(res, 400, 'VALIDATION'); return ok(res, { queued: true });
+    if (!/^\+?\d{7,15}$/.test(String(body.phone || ''))) return fail(res, 400, 'VALIDATION'); t.last4 = String(body.phone).slice(-4); return ok(res, { queued: true });
   }
-  if (p === '/api/public/tickets/recover' && m === 'POST') { const t = tickets.find(x => x.number === body.number); return t ? ok(res, { token: t.token }) : fail(res, 404, 'NOT_FOUND'); }
+  if (p === '/api/public/tickets/recover' && m === 'POST') { const t = tickets.find(x => x.number === body.number && x.last4 && x.last4 === body.phoneLast4); return t ? ok(res, { token: t.token }) : fail(res, 404, 'NOT_FOUND'); }
   if ((mm = p.match(/^\/api\/public\/tickets\/([0-9a-f]+)$/)) && m === 'GET') { const t = tickets.find(x => x.token === mm[1]); return t ? ok(res, pub(t)) : fail(res, 404, 'NOT_FOUND'); }
   // ---- auth
   if (p === '/api/auth/csrf') { if (!sess) { const s = rid(8); sessions.set(s, { csrf: rid(8), user: null }); return ok(res, { csrfToken: sessions.get(s).csrf }, { 'Set-Cookie': 'qm.sid=' + s + '; Path=/; HttpOnly; SameSite=Lax' }); } return ok(res, { csrfToken: sess.csrf }); }
@@ -110,7 +110,7 @@ function route(req, res, url, body) {
     if (p === '/api/queue/state') {
       const cid = Number(url.searchParams.get('counterId')) || u.counters[0];
       const cur = tickets.find(t => t.counter === cid && (t.status === 'called' || t.status === 'serving'));
-      const waiting = tickets.filter(t => t.status === 'waiting' && mine(t)).sort((a, b) => a.seq - b.seq);
+      const waiting = tickets.filter(t => t.status === 'waiting' && mine(t)).sort((a, b) => a.g - b.g);
       const skipped = tickets.filter(t => t.status === 'skipped' && mine(t));
       return ok(res, { counter: counters.find(c => c.id === cid), currentTicket: cur ? staffView(cur) : null,
         waiting: waiting.map(t => Object.assign(staffView(t), { waitedMin: Math.round((Date.now() - Date.parse(t.issuedAt)) / 60000) })), skipped: skipped.map(staffView),
@@ -120,7 +120,7 @@ function route(req, res, url, body) {
       const cid = body.counterId; if (!counters.find(c => c.id === cid)) return fail(res, 400, 'VALIDATION');
       if (tickets.find(t => t.counter === cid && (t.status === 'called' || t.status === 'serving'))) return fail(res, 409, 'INVALID_TRANSITION');
       if (body.serviceId && !u.services.includes(body.serviceId)) return fail(res, 403, 'FORBIDDEN_SERVICE');
-      const t = tickets.filter(t => t.status === 'waiting' && mine(t) && (!body.serviceId || t.service === body.serviceId)).sort((a, b) => a.seq - b.seq)[0];
+      const t = tickets.filter(t => t.status === 'waiting' && mine(t) && (!body.serviceId || t.service === body.serviceId)).sort((a, b) => a.g - b.g)[0];
       if (!t) return fail(res, 404, 'QUEUE_EMPTY');
       t.status = 'called'; t.counter = cid; t.calledAt = now(); emit('ticket:called', t, { counter: counters.find(c => c.id === cid), announce: true }); return ok(res, { ticket: staffView(t) });
     }
