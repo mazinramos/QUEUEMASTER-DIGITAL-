@@ -1,0 +1,153 @@
+/* شاشة الانتظار — QueueMaster. كل الأحجام نسبية (rem مرتبط بـ vmin) لتناسب 1366x768 وحتى 4K.
+   المتغيرات متوافقة مع فكرة tokens؛ عند جاهزية web/shared/tokens.css (حساب 3) تُربط القيم به. */
+:root {
+  --bg: #061a2e;
+  --bg-2: #0a2540;
+  --surface: #0f3256;
+  --surface-2: #14416c;
+  --line: rgba(255, 255, 255, .14);
+  --text: #ffffff;
+  --text-dim: #b9cde3;
+  --accent: #ffd23f;       /* رقم الشباك / التنبيه */
+  --accent-ink: #1b1400;
+  --ok: #3ddc84;
+  --warn: #ffb020;
+  --bad: #ff5d5d;
+  --ads-bg: #05080d;
+  --radius: 1.2rem;
+  --font: "Segoe UI", "Noto Sans Arabic", "Noto Kufi Arabic", Tahoma, system-ui, -apple-system, Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { font-size: clamp(10px, 1.5vmin, 36px); }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+body { overflow: hidden; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--text-dim); }
+body.kiosk, body.kiosk * { cursor: none; }
+body.kiosk.show-cursor, body.kiosk.show-cursor * { cursor: default; }
+
+/* ---------- عروض مركزية (تحميل/إقران) ---------- */
+.center-view { height: 100%; display: grid; place-items: center; padding: 2rem; background: radial-gradient(120% 100% at 50% 0%, var(--bg-2), var(--bg)); }
+.center-msg { font-size: 2.4rem; color: var(--text-dim); }
+.pair-card { width: min(44rem, 92vw); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 3rem; display: grid; gap: 1.4rem; text-align: center; }
+.pair-card h1 { margin: 0; font-size: 3rem; }
+.pair-card p { margin: 0; font-size: 1.6rem; line-height: 1.6; }
+.pair-input { font: inherit; font-size: 3.4rem; letter-spacing: .3em; text-align: center; text-transform: uppercase; padding: 1rem; border-radius: .8rem; border: 2px solid var(--line); background: #04121f; color: var(--text); width: 100%; }
+.pair-input:focus { outline: 3px solid var(--accent); border-color: var(--accent); }
+.pair-error { color: var(--bad) !important; font-weight: 700; }
+.btn { font: inherit; font-size: 1.8rem; font-weight: 700; padding: 1rem 2rem; border-radius: .8rem; border: 0; cursor: pointer; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.btn[disabled] { opacity: .6; cursor: wait; }
+.btn-xl { font-size: 3rem; padding: 1.6rem 3rem; }
+
+/* ---------- التخطيط: الطابور (بداية) + الإعلانات ---------- */
+/* grid يتبع اتجاه الصفحة: في RTL يكون الطابور على اليمين (البداية) وفي LTR على اليسار. */
+.screen { height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 46fr) minmax(0, 54fr); }
+.queue-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 1.6rem 1.8rem; gap: 1.2rem; background: linear-gradient(180deg, var(--bg-2), var(--bg)); border-inline-end: 1px solid var(--line); position: relative; z-index: 2; }
+.ads-panel { position: relative; min-width: 0; min-height: 0; background: var(--ads-bg); overflow: hidden; }
+
+/* شاشات عمودية/ضيقة: الطابور فوق والإعلانات تحته (الطابور لا يختفي أبداً) */
+@media (max-aspect-ratio: 5/4) {
+  .screen { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 64fr) minmax(0, 36fr); }
+  .queue-panel { border-inline-end: 0; border-block-end: 1px solid var(--line); }
+}
+
+/* ---------- الرأس ---------- */
+.q-head { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; flex: none; }
+.brand { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.brand-logo { height: 5.2rem; width: auto; max-width: 9rem; object-fit: contain; border-radius: .6rem; background: #fff; padding: .3rem; }
+.brand-name { font-size: 2.3rem; font-weight: 800; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-sub { font-size: 1.3rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clock-box { text-align: end; flex: none; }
+.clock { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.date { font-size: 1.3rem; color: var(--text-dim); margin-top: .3rem; }
+
+/* ---------- الجسم ---------- */
+.q-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 1.2rem; }
+.hero { flex: 3 1 0; min-height: 0; background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 1.2rem 1.6rem; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: .6rem; text-align: center; transition: background-color .4s, border-color .4s; }
+.hero-label { font-size: 1.8rem; font-weight: 700; color: var(--text-dim); letter-spacing: .02em; flex: none; }
+.hero-box { flex: 1 1 0; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.hero-number { display: inline-block; white-space: nowrap; font-size: 12rem; font-weight: 900; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: .02em; text-shadow: 0 .04em .12em rgba(0, 0, 0, .35); }
+.hero.is-empty .hero-number { color: var(--text-dim); }
+.hero-meta { flex: none; display: flex; flex-direction: column; align-items: center; gap: .2rem; }
+.hero-counter { font-size: 3.6rem; font-weight: 800; color: var(--accent); line-height: 1.1; }
+.hero-service { font-size: 1.5rem; color: var(--text-dim); min-height: 1.5em; }
+.hero.is-new { border-color: var(--accent); animation: heroFlash 1.1s ease-in-out 0s 8; }
+@keyframes heroFlash { 0%, 100% { background-color: var(--surface); } 50% { background-color: #6b5200; } }
+@media (prefers-reduced-motion: reduce) { .hero.is-new { animation: none; background-color: #4a3a00; } }
+
+.panel { background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem 1.2rem; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.panel-title { margin: 0 0 .6rem; font-size: 1.5rem; font-weight: 800; color: var(--text-dim); flex: none; }
+.at-counters { flex: none; }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
+.chip { display: flex; align-items: center; gap: .6rem; background: var(--surface-2); border-radius: .8rem; padding: .4rem .9rem; font-size: 1.8rem; font-weight: 800; }
+.chip .chip-no { direction: ltr; }
+.chip .chip-ctr { color: var(--accent); font-size: 1.4rem; font-weight: 700; }
+
+.lists { flex: 2 1 0; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.ticket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; overflow: hidden; min-height: 0; }
+.ticket-list li { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; background: rgba(255, 255, 255, .06); border-radius: .7rem; padding: .35rem .9rem; font-size: 2.2rem; font-weight: 800; }
+.ticket-list .t-no { direction: ltr; font-variant-numeric: tabular-nums; }
+.ticket-list .t-sub { font-size: 1.3rem; font-weight: 600; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-list .t-ctr { color: var(--accent); }
+.ticket-list .empty { justify-content: center; color: var(--text-dim); font-weight: 600; font-size: 1.6rem; background: transparent; }
+
+/* ---------- التذييل: حالة الطابور والاتصال ---------- */
+.q-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.status-group { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.waiting { font-size: 1.8rem; font-weight: 800; }
+.pill { display: inline-flex; align-items: center; gap: .5rem; padding: .3rem 1rem; border-radius: 99rem; font-size: 1.4rem; font-weight: 700; background: rgba(255, 255, 255, .1); }
+#queue-state[data-state="active"] { background: rgba(61, 220, 132, .2); color: var(--ok); }
+#queue-state[data-state="empty"] { background: rgba(255, 255, 255, .1); color: var(--text-dim); }
+.dot { width: .9rem; height: .9rem; border-radius: 50%; background: var(--warn); display: inline-block; }
+.pill-conn[data-state="online"] .dot { background: var(--ok); }
+.pill-conn[data-state="connecting"] .dot { background: var(--warn); animation: blink 1s infinite; }
+.pill-conn[data-state="offline"] .dot { background: var(--bad); animation: blink 1s infinite; }
+.pill-conn[data-state="offline"] { color: var(--bad); }
+.pill-sound[data-state="on"] { color: var(--ok); }
+.pill-sound[data-state="blocked"], .pill-sound[data-state="no-voice"] { color: var(--warn); }
+.pill-sound[data-state="off"] { color: var(--text-dim); }
+@keyframes blink { 50% { opacity: .25; } }
+
+.offline-banner { position: fixed; inset-inline: 0; inset-block-start: 0; z-index: 20; background: var(--bad); color: #fff; text-align: center; font-size: 1.6rem; font-weight: 800; padding: .5rem 1rem; }
+
+/* ---------- الإعلانات ---------- */
+.ad-stage { position: absolute; inset: 0; }
+.ad-layer { position: absolute; inset: 0; opacity: 0; transition: opacity .8s ease; display: grid; place-items: center; overflow: hidden; }
+.ad-layer.is-in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .ad-layer { transition: none; } }
+.ad-media { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.ad-text { padding: 6%; text-align: center; font-size: 4.2rem; font-weight: 800; line-height: 1.5; background: linear-gradient(135deg, #0f3256, #0a1f36); width: 100%; height: 100%; display: grid; place-content: center; gap: 1.5rem; }
+.ad-text .ad-title { font-size: 2.2rem; color: var(--accent); font-weight: 700; }
+.ad-text .ad-body { white-space: pre-line; overflow-wrap: anywhere; }
+.info-card { width: 100%; height: 100%; display: grid; place-content: center; justify-items: center; gap: 1.6rem; padding: 6%; text-align: center; background: radial-gradient(90% 90% at 50% 20%, #12426f, #071a2c); }
+.info-card .ic-badge { width: 7rem; height: 7rem; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.info-card .ic-badge svg { width: 4rem; height: 4rem; }
+.info-card .ic-kicker { font-size: 1.8rem; color: var(--accent); font-weight: 800; letter-spacing: .04em; }
+.info-card .ic-title { font-size: 4.6rem; font-weight: 900; line-height: 1.25; }
+.info-card .ic-text { font-size: 3.2rem; line-height: 1.6; font-weight: 600; max-width: 40ch; overflow-wrap: anywhere; }
+.info-card .ic-line { font-size: 2.6rem; color: var(--text-dim); direction: ltr; unicode-bidi: plaintext; }
+
+/* ---------- تفعيل الصوت وملء الشاشة ---------- */
+.audio-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-content: center; justify-items: center; gap: 1.4rem; background: rgba(2, 8, 16, .88); text-align: center; padding: 2rem; }
+.audio-gate p { margin: 0; font-size: 1.8rem; }
+.fs-btn { position: fixed; inset-block-end: 1rem; inset-inline-end: 1rem; z-index: 25; font: inherit; font-size: 1.3rem; padding: .5rem 1rem; border-radius: .6rem; border: 1px solid var(--line); background: rgba(0, 0, 0, .55); color: #fff; cursor: pointer; opacity: 0; transition: opacity .3s; }
+.fs-btn:focus-visible, body.show-cursor .fs-btn { opacity: 1; }
+body.kiosk .fs-btn { display: none; }
+
+/* الهواتف/النوافذ الصغيرة جداً: تمرير الصفحة بدل ضغط المحتوى */
+@media (max-width: 560px) {
+  body { overflow: auto; }
+  .screen { height: auto; min-height: 100dvh; grid-template-rows: auto minmax(40vh, auto); }
+  .queue-panel { height: auto; }
+  .q-body { flex: none; }
+  .hero { flex: none; min-height: 62vw; }
+  .hero-box { min-height: 34vw; }
+  .lists { flex: none; grid-template-columns: 1fr; }
+  .ads-panel { min-height: 56vw; }
+  .brand-name { font-size: 2.6rem; } .clock { font-size: 3.2rem; }
+}
