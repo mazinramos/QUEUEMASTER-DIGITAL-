@@ -1,0 +1,58 @@
+/* نصوص واجهة الشاشة (محلية بالكامل، بدون إنترنت). عند جاهزية web/shared/i18n من حساب 3 يمكن نقلها إليه. */
+(function (root) {
+  'use strict';
+  root.DisplayStrings = {
+    ar: {
+      title: 'شاشة الانتظار',
+      nowCalling: 'التذكرة الحالية', counter: 'الشباك', next: 'التالي', recent: 'آخر المنادَى',
+      atCounters: 'جاري الخدمة', waiting: 'في الانتظار', queueActive: 'الطابور نشط', queueEmpty: 'لا يوجد منتظرون',
+      noCall: 'لا يوجد نداء حالياً', welcome: 'أهلاً بكم', none: '—',
+      connOnline: 'متصل', connConnecting: 'جاري الاتصال…', connOffline: 'غير متصل، إعادة المحاولة…',
+      offlineBanner: 'انقطع الاتصال بالسيرفر، تُعرض آخر بيانات معروفة',
+      enableSound: 'تفعيل صوت الشاشة', enableSoundHint: 'اضغط مرة واحدة لتفعيل الصوت وملء الشاشة',
+      soundOn: 'الصوت يعمل', soundOff: 'الصوت معطّل', soundBlocked: 'الصوت يحتاج تفعيلاً', soundNoVoice: 'لا يوجد صوت عربي',
+      fullscreen: 'ملء الشاشة',
+      pairTitle: 'إقران الشاشة', pairHint: 'أدخل كود الإقران الذي أنشأه المدير من لوحة التحكم (إدارة الشاشات)',
+      pairCode: 'كود الإقران', pairButton: 'إقران',
+      pairInvalid: 'كود الإقران غير صحيح', pairRate: 'محاولات كثيرة، انتظر قليلاً ثم أعد المحاولة', pairNet: 'تعذر الاتصال بالسيرفر',
+      loading: 'جاري التحميل…',
+      infoAddress: 'العنوان', infoPhone: 'الهاتف', infoEmail: 'البريد', tip: 'نصيحة صحية',
+      tips: [
+        'اغسل يديك بالماء والصابون لمدة 20 ثانية على الأقل.',
+        'اشرب كمية كافية من الماء على مدار اليوم.',
+        'المشي 30 دقيقة يومياً يحمي القلب ويحسّن المزاج.',
+        'النوم الكافي من 7 إلى 8 ساعات يقوّي المناعة.',
+        'قلّل من الملح والسكر وتناول الخضروات والفاكهة يومياً.',
+        'غطِّ فمك وأنفك عند السعال أو العطس لحماية من حولك.',
+        'لا تتجاهل الفحص الدوري، فالكشف المبكر ينقذ الأرواح.',
+        'التزم بمواعيد الدواء كما وصفها الطبيب ولا توقفه من نفسك.',
+      ],
+    },
+    en: {
+      title: 'Waiting Display',
+      nowCalling: 'Now Calling', counter: 'Counter', next: 'Next', recent: 'Recently Called',
+      atCounters: 'At Counters', waiting: 'Waiting', queueActive: 'Queue active', queueEmpty: 'No one waiting',
+      noCall: 'No call at the moment', welcome: 'Welcome', none: '—',
+      connOnline: 'Connected', connConnecting: 'Connecting…', connOffline: 'Offline, retrying…',
+      offlineBanner: 'Connection to the server lost; showing last known data',
+      enableSound: 'Enable display sound', enableSoundHint: 'Tap once to enable sound and fullscreen',
+      soundOn: 'Sound on', soundOff: 'Sound off', soundBlocked: 'Sound needs enabling', soundNoVoice: 'No Arabic voice',
+      fullscreen: 'Fullscreen',
+      pairTitle: 'Pair this display', pairHint: 'Enter the pairing code created by the admin (Displays management)',
+      pairCode: 'Pairing code', pairButton: 'Pair',
+      pairInvalid: 'Invalid pairing code', pairRate: 'Too many attempts, please wait and try again', pairNet: 'Cannot reach the server',
+      loading: 'Loading…',
+      infoAddress: 'Address', infoPhone: 'Phone', infoEmail: 'Email', tip: 'Health tip',
+      tips: [
+        'Wash your hands with soap and water for at least 20 seconds.',
+        'Drink enough water throughout the day.',
+        'Walking 30 minutes a day protects your heart and lifts your mood.',
+        '7 to 8 hours of sleep strengthens your immune system.',
+        'Cut down on salt and sugar; eat vegetables and fruit daily.',
+        'Cover your mouth and nose when coughing or sneezing.',
+        'Do not skip routine check-ups; early detection saves lives.',
+        'Take medicine as prescribed and never stop it on your own.',
+      ],
+    },
+  };
+}(typeof self !== 'undefined' ? self : this));

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex">
+  <title>QueueMaster — شاشة الانتظار</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/display.css">
+</head>
+<body data-view="loading">
+
+  <!-- شاشة التحميل -->
+  <section id="view-loading" class="center-view" aria-live="polite"><p id="loading-text" class="center-msg">…</p></section>
+
+  <!-- صفحة الإقران -->
+  <section id="view-pair" class="center-view" hidden>
+    <form id="pair-form" class="pair-card" autocomplete="off" novalidate>
+      <h1 id="pair-title"></h1>
+      <p id="pair-hint" class="muted"></p>
+      <label for="pair-code" id="pair-label" class="sr-only"></label>
+      <input id="pair-code" name="code" class="pair-input" type="text" inputmode="text" maxlength="9" spellcheck="false" autocapitalize="characters" dir="ltr" placeholder="XXXX-XXXX" required>
+      <p id="pair-error" class="pair-error" role="alert" hidden></p>
+      <button id="pair-submit" class="btn btn-primary" type="submit"></button>
+    </form>
+  </section>
+
+  <!-- الشاشة الرئيسية: قسم الطابور (دائم) + قسم الإعلانات -->
+  <main id="view-screen" class="screen" hidden>
+    <section id="queue-panel" class="queue-panel" aria-label="Queue">
+      <header class="q-head">
+        <div class="brand">
+          <img id="clinic-logo" class="brand-logo" alt="" hidden>
+          <div class="brand-text"><div id="clinic-name" class="brand-name"></div><div id="clinic-sub" class="brand-sub"></div></div>
+        </div>
+        <div class="clock-box">
+          <div id="clock" class="clock" dir="ltr">--:--</div>
+          <div id="date" class="date"></div>
+        </div>
+      </header>
+
+      <div class="q-body">
+        <section id="hero" class="hero" aria-live="polite" aria-atomic="true">
+          <div id="hero-label" class="hero-label"></div>
+          <div id="hero-box" class="hero-box"><span id="hero-number" class="hero-number" dir="ltr">—</span></div>
+          <div class="hero-meta">
+            <div id="hero-counter" class="hero-counter"></div>
+            <div id="hero-service" class="hero-service"></div>
+          </div>
+        </section>
+
+        <section id="at-counters" class="panel at-counters" hidden>
+          <h2 id="at-counters-title" class="panel-title"></h2>
+          <ul id="at-counters-list" class="chips"></ul>
+        </section>
+
+        <div class="lists">
+          <section class="panel">
+            <h2 id="next-title" class="panel-title"></h2>
+            <ol id="next-list" class="ticket-list"></ol>
+          </section>
+          <section class="panel">
+            <h2 id="recent-title" class="panel-title"></h2>
+            <ol id="recent-list" class="ticket-list"></ol>
+          </section>
+        </div>
+      </div>
+
+      <footer class="q-foot">
+        <div class="status-group">
+          <span id="queue-state" class="pill"></span>
+          <span id="waiting-count" class="waiting"></span>
+        </div>
+        <div class="status-group">
+          <span id="sound-status" class="pill pill-sound" hidden></span>
+          <span id="conn-status" class="pill pill-conn" data-state="connecting"><i class="dot"></i><span id="conn-text"></span></span>
+        </div>
+      </footer>
+    </section>
+
+    <section id="ads-panel" class="ads-panel" aria-label="Announcements">
+      <div id="ad-stage" class="ad-stage"></div>
+    </section>
+  </main>
+
+  <div id="offline-banner" class="offline-banner" role="status" hidden></div>
+
+  <!-- تفعيل الصوت (يظهر فقط عند الحاجة لتفاعل المستخدم) -->
+  <div id="audio-gate" class="audio-gate" hidden>
+    <button id="audio-gate-btn" class="btn btn-primary btn-xl" type="button"></button>
+    <p id="audio-gate-hint" class="muted"></p>
+  </div>
+
+  <button id="fs-btn" class="fs-btn" type="button" hidden></button>
+
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="js/core.js" defer></script>
+  <script src="js/strings.js" defer></script>
+  <script src="js/stage.js" defer></script>
+  <script src="js/info-cards.js" defer></script>
+  <script src="js/ads.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
