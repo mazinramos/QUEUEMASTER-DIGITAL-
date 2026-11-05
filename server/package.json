@@ -10,7 +10,7 @@
     "dev": "node --watch src/server.js",
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seed-dev.js",
-    "test": "node --test --test-concurrency=1 tests/"
+    "test": "node --test --test-concurrency=1"
   },
   "dependencies": {
     "argon2": "^0.41.1",

@@ -8,6 +8,9 @@ const { getDb } = require('./database');
 const { runMigrations } = require('./database/migrate');
 const { ok } = require('./utils/respond');
 const { errorHandler, notFoundApi } = require('./middleware/errorHandler');
+const { loadSession, purgeExpired } = require('./middleware/session');
+const { csrfProtect } = require('./middleware/csrf');
+const { apiLimiter } = require('./middleware/rateLimit');
 
 function loadRoutes(app) {
   const dir = path.join(__dirname, 'routes');
@@ -57,6 +60,10 @@ function createApp({ autoMigrate = true } = {}) {
   );
   app.use(express.json({ limit: '200kb' }));
 
+  // API hardening: no caching, global rate limit, session + CSRF
+  app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+  app.use('/api', apiLimiter, loadSession, csrfProtect);
+
   app.get('/api/health', (req, res) =>
     ok(res, { status: 'ok', time: new Date().toISOString(), version: config.version })
   );
@@ -73,6 +80,11 @@ function createApp({ autoMigrate = true } = {}) {
 
   app.use('/api', notFoundApi);
   app.use(errorHandler);
+  if (config.env !== 'test') {
+    const t = setInterval(() => { try { purgeExpired(); } catch { /* db closed */ } }, 10 * 60 * 1000);
+    t.unref();
+  }
+  purgeExpired();
   return app;
 }
 

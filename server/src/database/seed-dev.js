@@ -1,7 +1,6 @@
 'use strict';
 // DEV ONLY. Refuses to run when NODE_ENV=production. Passwords are random and printed once.
-const config = require('../config');
-if (config.env === 'production') {
+if (process.env.NODE_ENV === 'production') {
   console.error('Refusing to seed: NODE_ENV=production. seed-dev is for development only.');
   process.exit(1);
 }

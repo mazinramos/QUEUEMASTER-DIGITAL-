@@ -30,6 +30,21 @@ module.exports = {
   dbPath: process.env.DB_PATH || path.join(dataDir, 'queuemaster.db'),
   uploadsDir: path.join(serverRoot, 'uploads'),
   webDir: path.resolve(serverRoot, '..', 'web'),
-  session: { idleMinutes: 30, absoluteHours: 12, cookieName: 'qm.sid' },
+  session: {
+    idleMinutes: parseInt(process.env.SESSION_IDLE_MIN || '30', 10),
+    absoluteHours: 12,
+    cookieName: 'qm.sid',
+    secureCookie: process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === 'true'
+      : (isProd && /^https:/i.test(process.env.BASE_URL || '')),
+  },
+  rateLimit: {
+    loginMax: parseInt(process.env.LOGIN_RATE_MAX || '10', 10),
+    loginWindowMs: 15 * 60 * 1000,
+    apiMax: parseInt(process.env.API_RATE_MAX || '1200', 10),
+    apiWindowMs: 60 * 1000,
+    lockAfterFails: parseInt(process.env.LOCK_AFTER_FAILS || '5', 10),
+    lockMinutes: parseInt(process.env.LOCK_MINUTES || '15', 10),
+  },
   version: require('../../package.json').version,
 };
