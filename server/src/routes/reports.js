@@ -1,7 +1,7 @@
 'use strict';
 /**
  * routes/reports.js — إحصاءات اللوحة والتقارير (حساب 5). للقراءة فقط، الحد الأدنى للدور: manager.
- *   GET /api/admin/stats/overview?date=
+ *   GET /api/admin/stats/overview?date=  |  GET /api/admin/stats/integrations (حالة طوابير SMS والمزامنة)
  *   GET /api/admin/reports/{summary|daily|weekly|monthly|services|waiting-times|staff}?from=&to=&serviceId=&format=csv&lang=ar|en
  * CSV: UTF-8 + BOM، CRLF، حماية من formula injection (reportsCsv.js).
  */
@@ -99,6 +99,10 @@ function createReportsRouter({ service, guards } = {}) {
 
   router.get('/stats/overview', (req, res, next) => {
     try { res.json({ ok: true, data: svc.overview(req.actor.clinicId, req.query) }); } catch (e) { next(e); }
+  });
+
+  router.get('/stats/integrations', (req, res, next) => {
+    try { res.json({ ok: true, data: svc.integrations(req.actor.clinicId) }); } catch (e) { next(e); }
   });
 
   router.get('/reports/:name', (req, res, next) => {

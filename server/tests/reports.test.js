@@ -228,3 +228,32 @@ describe('reportsCsv (وحدة)', () => {
     assert.equal(s, '\uFEFFا,ب\r\n1,x\r\n');
   });
 });
+
+describe('integrations (حالة SMS والمزامنة)', () => {
+  const crypto = require('crypto');
+  test('أعداد الطوابير، إخفاء الأرقام من آخر خطأ، وعدم تسريب الهاتف/الحمولة/عيادة أخرى', async () => {
+    const t = createTestDb(); const db = t.db; const ts = new Date().toISOString();
+    db.prepare("INSERT INTO clinic_settings (clinic_id,key,value,updated_at) VALUES (1,'sms_enabled','true',?)").run(ts);
+    const sms = db.prepare('INSERT INTO sms_outbox (clinic_id,phone_encrypted,body,status,last_error,created_at,updated_at) VALUES (?,?,?,?,?,?,?)');
+    sms.run(1, 'ENC-SECRET', 'نص', 'pending', null, '2026-11-04T08:00:00.000Z', ts);
+    sms.run(1, 'ENC-SECRET', 'نص', 'sent', null, ts, ts);
+    sms.run(1, 'ENC-SECRET', 'نص', 'failed', 'provider rejected +249912345678 quota', ts, ts);
+    sms.run(2, 'ENC-OTHER', 'x', 'failed', 'other clinic', ts, ts);
+    const sy = db.prepare('INSERT INTO sync_outbox (clinic_id,entity,entity_uid,operation,payload,status,created_at,synced_at) VALUES (?,?,?,?,?,?,?,?)');
+    sy.run(1, 'ticket', 'u1', 'upsert', '{"phone":"SECRET"}', 'synced', '2026-11-04T07:00:00.000Z', '2026-11-04T07:01:00.000Z');
+    sy.run(1, 'ticket', 'u2', 'upsert', '{}', 'pending', '2026-11-04T09:00:00.000Z', null);
+    const svc = createReportsService({ getDb: () => db, now: () => NOW, env: { SMS_PROVIDER: 'twilio', PHONE_ENC_KEY: 'k', FIREBASE_PROJECT_ID: 'p' } });
+    const r = svc.integrations(1);
+    assert.deepEqual(r.sms.counts, { pending: 1, sent: 1, failed: 1, expired: 0 });
+    assert.deepEqual([r.sms.enabled, r.sms.provider, r.sms.providerConfigured, r.sms.encryptionKeyConfigured], [true, 'twilio', true, true]);
+    assert.equal(r.sms.oldestPendingAt, '2026-11-04T08:00:00.000Z');
+    assert.equal(r.sms.lastError.message, 'provider rejected *** quota');
+    assert.deepEqual(r.sync.counts, { pending: 1, synced: 1, failed: 0 });
+    assert.equal(r.sync.lastSyncedAt, '2026-11-04T07:01:00.000Z'); assert.equal(r.sync.credentialsDetected, true);
+    const json = JSON.stringify(r);
+    assert.ok(!json.includes('SECRET') && !json.includes('ENC-') && !json.includes('other clinic') && !json.includes('249912345678'));
+    const none = createReportsService({ getDb: () => db, now: () => NOW, env: {} }).integrations(1);
+    assert.deepEqual([none.sms.provider, none.sms.providerConfigured, none.sync.credentialsDetected], ['none', false, false]);
+    t.cleanup();
+  });
+});

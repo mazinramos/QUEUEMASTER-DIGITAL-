@@ -143,6 +143,16 @@ describe('ads: CRUD والتحقق والصلاحيات', () => {
     assert.equal(h.uploadedFiles().length, h.db.prepare('SELECT COUNT(*) c FROM advertisements WHERE file_path IS NOT NULL').get().c, 'لا ملفات يتيمة بعد رفض إعلان نصي مع ملف');
   });
 
+  test('مسح الجدولة: إرسال starts_at/ends_at فارغين في PUT يعيدهما null', async () => {
+    const ad = (await mkImage({ starts_at: iso(-10), ends_at: iso(60) })).body.data.ad;
+    assert.ok(ad.startsAt && ad.endsAt);
+    const u = await h.call('PUT', `/api/admin/ads/${ad.id}`, { form: h.makeForm({ starts_at: '', ends_at: '' }) });
+    assert.equal(u.status, 200, JSON.stringify(u.body));
+    assert.equal(u.body.data.ad.startsAt, null); assert.equal(u.body.data.ad.endsAt, null);
+    const keep = await h.call('PUT', `/api/admin/ads/${ad.id}`, { form: h.makeForm({ title: 'جديد' }) });
+    assert.equal(keep.body.data.ad.startsAt, null, 'عدم إرسال الحقل لا يغيّره');
+  });
+
   test('صورة بدون ملف تُرفض', async () => {
     const r = await h.call('POST', '/api/admin/ads', { form: h.makeForm({ title: 'x', media_type: 'image' }) });
     assert.equal(r.status, 400);

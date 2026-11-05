@@ -50,7 +50,7 @@ function percentile(sorted, p) {
   return sorted[idx];
 }
 
-function createReportsService({ getDb, now = () => new Date() } = {}) {
+function createReportsService({ getDb, now = () => new Date(), env = process.env } = {}) {
   if (typeof getDb !== 'function') throw new Error('getDb is required');
 
   function clinicOf(clinicId) {
@@ -234,7 +234,32 @@ function createReportsService({ getDb, now = () => new Date() } = {}) {
     return { from, to, rows };
   }
 
-  return { overview, summary, daily, weekly, monthly, services, waitingTimes, staff, parseRange, MAX_RANGE_DAYS };
+  /* ---------- حالة المزامنة والرسائل (قراءة فقط؛ لا أرقام هواتف ولا حمولات) ---------- */
+  const redact = (e) => (e == null ? null : String(e).replace(/\+?\d[\d\s-]{6,}\d/g, '***').slice(0, 200));
+  function integrations(clinicId) {
+    clinicOf(clinicId);
+    const db = getDb();
+    const counts = (table, statuses) => {
+      const out = Object.fromEntries(statuses.map((x) => [x, 0]));
+      for (const r of db.prepare(`SELECT status, COUNT(*) AS n FROM ${table} WHERE clinic_id = ? GROUP BY status`).all(clinicId)) out[r.status] = r.n;
+      return out;
+    };
+    const setting = db.prepare("SELECT value FROM clinic_settings WHERE clinic_id = ? AND key = 'sms_enabled'").get(clinicId);
+    const smsOldest = db.prepare("SELECT MIN(created_at) AS t FROM sms_outbox WHERE clinic_id = ? AND status = 'pending'").get(clinicId).t;
+    const smsErr = db.prepare("SELECT last_error AS e, updated_at AS at FROM sms_outbox WHERE clinic_id = ? AND status = 'failed' AND last_error IS NOT NULL ORDER BY id DESC LIMIT 1").get(clinicId);
+    const syncOldest = db.prepare("SELECT MIN(created_at) AS t FROM sync_outbox WHERE clinic_id = ? AND status = 'pending'").get(clinicId).t;
+    const syncErr = db.prepare("SELECT last_error AS e, created_at AS at FROM sync_outbox WHERE clinic_id = ? AND status = 'failed' AND last_error IS NOT NULL ORDER BY id DESC LIMIT 1").get(clinicId);
+    const lastSynced = db.prepare("SELECT MAX(synced_at) AS t FROM sync_outbox WHERE clinic_id = ? AND status = 'synced'").get(clinicId).t;
+    const provider = env.SMS_PROVIDER || 'none';
+    return {
+      sms: { enabled: !!setting && ['1', 'true', 'on'].includes(String(setting.value).toLowerCase()), provider, providerConfigured: provider !== 'none', encryptionKeyConfigured: !!(env.PHONE_ENC_KEY || env.SMS_ENCRYPTION_KEY),
+        counts: counts('sms_outbox', ['pending', 'sent', 'failed', 'expired']), oldestPendingAt: smsOldest, lastError: smsErr ? { message: redact(smsErr.e), at: smsErr.at } : null },
+      sync: { credentialsDetected: !!(env.FIREBASE_PROJECT_ID || env.FIREBASE_SERVICE_ACCOUNT_PATH || env.GOOGLE_APPLICATION_CREDENTIALS),
+        counts: counts('sync_outbox', ['pending', 'synced', 'failed']), oldestPendingAt: syncOldest, lastSyncedAt: lastSynced, lastError: syncErr ? { message: redact(syncErr.e), at: syncErr.at } : null },
+    };
+  }
+
+  return { overview, integrations, summary, daily, weekly, monthly, services, waitingTimes, staff, parseRange, MAX_RANGE_DAYS };
 }
 
 module.exports = { createReportsService, ReportsError, isRealDate, isoWeekStart, businessDate };
