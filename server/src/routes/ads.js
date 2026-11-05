@@ -5,8 +5,8 @@
  *   GET/POST /api/admin/ads | PUT/DELETE /api/admin/ads/:id | GET /api/admin/ads/:id/preview
  *
  * اعتماديات على حساب 1 (تُحل بتأخير وتفشل بإغلاق آمن إن لم توجد):
- *   require('../middleware') يصدّر requireRole(minRole) ، واختيارياً csrfProtection
- *   المستخدم الحالي على req.staff | req.session.staff | req.user بالحقول {id, clinicId|clinic_id, role}
+ *   require('../middleware').requireRole(minRole) (يرجع مصفوفة middleware) — CSRF عالمي في app.js
+ *   المستخدم الحالي على req.staff (صف staff: id, clinic_id, role)
  */
 const express = require('express');
 const { AdsError, createAdsUpload } = require('../services/adsUpload');
@@ -23,14 +23,17 @@ function getActor(req) {
 }
 
 function defaultGuards() {
+  // requireRole() عند ح1 يرجع مصفوفة middleware؛ نسطّحها. CSRF تطبّقه app.js عالمياً على /api.
+  let chain = null;
   return (req, res, next) => {
-    let mw;
-    try { mw = require('../middleware'); } catch (_) { mw = null; }
-    if (!mw || typeof mw.requireRole !== 'function') {
-      return res.status(500).json({ ok: false, error: { code: 'INTERNAL', message: 'auth middleware unavailable' } });
+    if (!chain) {
+      let mw;
+      try { mw = require('../middleware'); } catch (_) { mw = null; }
+      if (!mw || typeof mw.requireRole !== 'function') {
+        return res.status(500).json({ ok: false, error: { code: 'INTERNAL', message: 'auth middleware unavailable' } });
+      }
+      chain = [mw.requireRole(MIN_ROLE)].flat();
     }
-    const chain = [mw.requireRole(MIN_ROLE)];
-    if (typeof mw.csrfProtection === 'function') chain.push(mw.csrfProtection);
     let i = 0;
     const step = (err) => {
       if (err) return next(err);
@@ -104,6 +107,10 @@ function createAdsRouter({ service, upload, guards } = {}) {
   router.use((err, req, res, next) => {
     if (err instanceof AdsError) {
       return res.status(err.status).json({ ok: false, error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } });
+    }
+    // أخطاء حارس ح1 (AppError: status + code) تمر بصيغة العقد كما هي (401/403 ...)
+    if (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 500 && typeof err.code === 'string') {
+      return res.status(err.status).json({ ok: false, error: { code: err.code, message: err.message } });
     }
     console.error('[ads] unexpected error:', err);
     return res.status(500).json({ ok: false, error: { code: 'INTERNAL', message: 'خطأ داخلي' } });
