@@ -1,7 +1,7 @@
 // E2E helpers. Needs a Chromium: set CHROMIUM_PATH (or on Windows 11 Edge is used automatically via channel).
-// Run: cd web && npm i && npm run dev:mock (other terminal) && npm run test:e2e
+// Run: see web/README.md (needs a seeded real backend)
 const { chromium } = require('playwright-core');
-const BASE = process.env.QM_BASE || 'http://localhost:3100';
+const BASE = process.env.QM_BASE || 'http://localhost:3000';
 async function launch(args) {
   const opts = { headless: true, args: args || [] };
   if (process.env.CHROMIUM_PATH) opts.executablePath = process.env.CHROMIUM_PATH; else if (process.platform === 'win32') opts.channel = 'msedge';
@@ -23,5 +23,4 @@ function staffClient(user = 'manager', pass = 'manager123') {
 let passed = 0, failed = 0;
 async function step(name, fn) { try { await fn(); passed++; console.log('  ok   ' + name); } catch (e) { failed++; console.log('  FAIL ' + name + '\n       ' + (e && e.message || e).split('\n')[0]); } }
 function summary() { console.log(`\n${passed} passed, ${failed} failed`); return failed ? 1 : 0; }
-const dev = (path, body) => fetch(BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(r => r.json());
-module.exports = { launch, staffClient, step, summary, dev, BASE };
+module.exports = { launch, staffClient, step, summary, BASE };
