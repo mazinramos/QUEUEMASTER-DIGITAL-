@@ -4,10 +4,12 @@
   "description": "Front-end (vanilla JS) tests and dev tooling for web/shared, web/patient, web/staff. Production code needs no build step and no dependencies.",
   "scripts": {
     "test": "node tools/run-tests.js",
-    "dev:mock": "node shared/dev-mock/server.js"
+    "dev:mock": "node shared/dev-mock/server.js",
+    "test:e2e": "node e2e/patient.e2e.js && node e2e/staff.e2e.js"
   },
   "devDependencies": {
     "jsdom": "^26.0.0",
-    "socket.io": "^4.8.0"
+    "socket.io": "^4.8.0",
+    "playwright-core": "^1.50.0"
   }
 }

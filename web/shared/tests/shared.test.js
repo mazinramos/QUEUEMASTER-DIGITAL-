@@ -105,3 +105,11 @@ test('icons: every icon renders an svg and unknown names are empty', () => {
   assert.match(icon('ticket', { size: 24 }), /^<svg class="qm-icon"[^>]*width="24"/);
   assert.equal(icon('nope'), '');
 });
+
+test('qr: matrix + svg for a ticket url', () => {
+  const qr = require('../qr.js').create(require('../vendor/qrcode.js'));
+  const url = 'http://192.168.1.10:3000/patient/?t=0123456789abcdef0123456789abcdef';
+  const m = qr.matrix(url); assert.ok(m.size >= 29 && m.size % 4 === 1);
+  assert.equal(m.isDark(0, 0), true, 'finder pattern corner is dark');
+  const s = qr.svg(url, { margin: 4 }); assert.match(s, /^<svg [^>]*viewBox="0 0 \d+ \d+"/); assert.match(s, /<path fill="#000" d="M/);
+});
