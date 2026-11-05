@@ -25,3 +25,16 @@ def make_all(d):
     try: make_video(f'{d}/clip.mp4', 2, 'libx264'); codec = 'h264'
     except Exception: make_video(f'{d}/clip.mp4', 2, 'libvpx-vp9'); codec = 'vp9'
     return codec
+
+
+def make_tone_clips(dest_ar):
+    """ملفات mp3 قصيرة (نغمات) بأسماء المانيفست الحقيقي لاختبار مسار التشغيل (ليست كلاماً حقيقياً)."""
+    import csv, tempfile
+    tmp = tempfile.mkdtemp()
+    subprocess.run(['node', 'tools/audio-clips.js', 'scaffold', tmp], check=True, cwd=os.path.join(os.path.dirname(__file__), '..'), stdout=subprocess.DEVNULL)
+    rows = list(csv.DictReader(open(f'{tmp}/ar/clips-to-record.csv', encoding='utf-8-sig')))
+    os.makedirs(dest_ar, exist_ok=True)
+    for i, r in enumerate(rows):
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', f'sine=frequency={300 + (i % 20) * 20}:duration=0.12',
+                        '-ac', '1', '-ar', '22050', '-c:a', 'libmp3lame', '-b:a', '32k', f"{dest_ar}/{r['file']}"], check=True)
+    return len(rows)

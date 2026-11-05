@@ -64,6 +64,7 @@ const adSchema = z.object({
   message: 'تاريخ النهاية يجب أن يكون بعد البداية', path: ['ends_at'],
 });
 
+const CLEARABLE = new Set(['starts_at', 'ends_at']);
 const FIELDS = ['title', 'media_type', 'body_text', 'duration_sec', 'priority', 'starts_at', 'ends_at', 'is_active', 'display_ids'];
 
 /** يطبّع body قادم من multipart (نصوص): '' -> undefined، ويحذف أي حقل غير معروف. */
@@ -73,7 +74,8 @@ function pickBody(raw) {
   for (const k of FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(raw, k)) continue;
     const v = raw[k];
-    out[k] = v === '' ? undefined : v;
+    // '' = حقل فارغ في نموذج multipart: يعني «امسح الجدولة» لتاريخي البداية/النهاية، وغير ذلك «لم يُرسل»
+    out[k] = v === '' ? (CLEARABLE.has(k) ? null : undefined) : v;
   }
   return out;
 }

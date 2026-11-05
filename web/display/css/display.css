@@ -132,10 +132,14 @@ body.kiosk.show-cursor, body.kiosk.show-cursor * { cursor: default; }
 .info-card .ic-text { font-size: 3.2rem; line-height: 1.6; font-weight: 600; max-width: 40ch; overflow-wrap: anywhere; }
 .info-card .ic-line { font-size: 2.6rem; color: var(--text-dim); direction: ltr; unicode-bidi: plaintext; }
 
-/* ---------- تفعيل الصوت وملء الشاشة ---------- */
-.audio-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-content: center; justify-items: center; gap: 1.4rem; background: rgba(2, 8, 16, .88); text-align: center; padding: 2rem; }
-.audio-gate p { margin: 0; font-size: 1.8rem; }
-.fs-btn { position: fixed; inset-block-end: 1rem; inset-inline-end: 1rem; z-index: 25; font: inherit; font-size: 1.3rem; padding: .5rem 1rem; border-radius: .6rem; border: 1px solid var(--line); background: rgba(0, 0, 0, .55); color: #fff; cursor: pointer; opacity: 0; transition: opacity .3s; }
+/* ---------- تفعيل الصوت وملء الشاشة ----------
+   اللوحة صغيرة في جهة الإعلانات (inline-end) ولا تغطي الطابور أبداً؛ ونقرة في أي مكان تفك الحظر أيضاً. */
+.audio-gate { position: fixed; inset-block-end: 1.2rem; inset-inline-end: 1.2rem; z-index: 30; display: grid; justify-items: center; gap: .6rem; max-width: min(34rem, 44vw); background: rgba(2, 8, 16, .92); border: 3px solid var(--accent); border-radius: var(--radius); padding: 1.2rem 1.6rem; text-align: center; animation: gatePulse 2s ease-in-out infinite; }
+.audio-gate p { margin: 0; font-size: 1.4rem; line-height: 1.5; }
+.audio-gate .btn-xl { font-size: 2.2rem; padding: 1rem 1.8rem; }
+@keyframes gatePulse { 50% { box-shadow: 0 0 0 .8rem rgba(255, 210, 63, .25); } }
+@media (prefers-reduced-motion: reduce) { .audio-gate { animation: none; } }
+.fs-btn { position: fixed; inset-block-start: 1rem; inset-inline-end: 1rem; z-index: 25; font: inherit; font-size: 1.3rem; padding: .5rem 1rem; border-radius: .6rem; border: 1px solid var(--line); background: rgba(0, 0, 0, .55); color: #fff; cursor: pointer; opacity: 0; transition: opacity .3s; }
 .fs-btn:focus-visible, body.show-cursor .fs-btn { opacity: 1; }
 body.kiosk .fs-btn { display: none; }
 

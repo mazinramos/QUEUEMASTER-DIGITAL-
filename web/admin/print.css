@@ -1,0 +1,14 @@
+/* طباعة التقارير: أبيض وأسود نظيف، بلا شريط التحكم. */
+.adm-print { background: #fff; padding: var(--qm-space-5); }
+.adm-print__bar { display: flex; justify-content: space-between; gap: var(--qm-space-3); margin-block-end: var(--qm-space-4); }
+.adm-print__head { margin-block-end: var(--qm-space-4); border-block-end: 2px solid var(--qm-navy-800); padding-block-end: var(--qm-space-3); }
+.adm-print__head h1 { font-size: var(--qm-fs-xl); } .adm-print__head h2 { font-size: var(--qm-fs-lg); font-weight: 600; }
+@media print {
+  .adm-print { padding: 0; }
+  .adm-print__bar { display: none !important; }
+  .adm-table th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .adm-table-wrap { overflow: visible; }
+  .adm-chart { max-height: 220px; }
+  tr, figure { break-inside: avoid; }
+  @page { margin: 14mm; }
+}

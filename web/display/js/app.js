@@ -168,6 +168,7 @@
     S.lastFocusSeq = S.state.focusSeq; // لا وميض لحالة قديمة عند التحميل/إعادة الاتصال
     renderAll();
     if (S.adsCtl) { S.adsCtl.setAds(S.ads, S.display && S.display.id); }
+    initAudio();
     if (S.announcer) S.announcer.setSettings(S.settings);
   }
 
@@ -245,6 +246,35 @@
     if (!C.isFresh(p.ts, now(), S.offsetMs)) return;
     if (!S.gate.accept(`${ticketNumber}|${counterNumber}`, source, now())) return;
     if (S.announcer) S.announcer.enqueue({ eventId: p.eventId, ts: p.ts, ticketNumber: String(ticketNumber), counterNumber, recall: !!recall });
+  }
+
+  /* ================= الصوت ================= */
+  function renderSound(status) {
+    const pill = $('sound-status'); const t = S.str;
+    pill.hidden = false; pill.dataset.state = status.state;
+    pill.textContent = status.state === 'on' ? t.soundOn : status.state === 'off' ? t.soundOff : status.state === 'blocked' ? t.soundBlocked : t.soundNoVoice;
+    $('audio-gate').hidden = !status.needsGate;
+  }
+  function lettersMode() {
+    try { return qs.get('letters') || localStorage.getItem('qm.display.letters') || 'latin'; } catch (e) { return 'latin'; }
+  }
+  function initAudio() {
+    const A = window.DisplayAnnouncer;
+    if (S.announcer || !A) return;
+    try {
+      S.announcer = A.create({
+        speech: A.createBrowserSpeech(window), clips: A.createBrowserClips(window),
+        settings: S.settings, letters: lettersMode(), onStatus: renderSound, log: (e) => console.debug('[audio]', e),
+      });
+    } catch (e) { console.error('[display] audio init failed', e); }
+    setInterval(() => { if (S.announcer) S.announcer.refresh(); }, 1000);
+    // أي نقرة/لمسة/مفتاح في أي مكان تفك حظر الصوت (المتصفح يشترط تفاعلاً مرة واحدة)
+    const unlockOnce = () => { if (S.announcer) S.announcer.unlock(); };
+    ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => document.addEventListener(ev, unlockOnce, { capture: true, passive: true }));
+    $('audio-gate-btn').addEventListener('click', () => {
+      unlockOnce();
+      if (qs.get('kiosk') === '1' || qs.get('fs') === '1') toggleFullscreen();
+    });
   }
 
   /* ================= دورة الحياة ================= */

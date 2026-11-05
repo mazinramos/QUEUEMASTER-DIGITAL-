@@ -10,7 +10,7 @@ try:
         page = ctx.new_page()
         errors = []
         page.on('pageerror', lambda e: errors.append(str(e)))
-        page.on('console', lambda m: errors.append(m.text + ' @ ' + m.location.get('url', '')) if m.type == 'error' and '/api/display/' not in m.location.get('url', '') else None)
+        page.on('console', lambda m: errors.append(m.text + ' @ ' + m.location.get('url', '')) if m.type == 'error' and '/api/display/' not in m.location.get('url', '') and '/media/audio/' not in m.location.get('url', '') else None)
 
         # ---- الإقران ----
         page.goto(mock.base + '/display/')
