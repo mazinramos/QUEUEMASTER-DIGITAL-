@@ -1,0 +1,9 @@
+{
+  "name": "queuemaster-tests",
+  "private": true,
+  "description": "اختبارات QueueMaster (حساب 5). تعمل بـ node:test المدمج بلا مكتبات إضافية.",
+  "scripts": {
+    "test": "node run.js",
+    "test:ads": "node run.js ads"
+  }
+}
