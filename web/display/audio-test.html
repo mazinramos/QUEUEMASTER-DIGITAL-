@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>QueueMaster — اختبار صوت الشاشة</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: dark; --bg:#061a2e; --card:#0f3256; --line:rgba(255,255,255,.18); --acc:#ffd23f; --ok:#3ddc84; --bad:#ff5d5d; --warn:#ffb020; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.6 "Segoe UI","Noto Sans Arabic",Tahoma,sans-serif; background: var(--bg); color: #fff; padding: 1.2rem; }
+    main { max-width: 60rem; margin: 0 auto; display: grid; gap: 1rem; }
+    h1 { margin: 0 0 .2rem; font-size: 1.6rem; } h2 { margin: 0 0 .6rem; font-size: 1.1rem; color: var(--acc); }
+    section { background: var(--card); border: 1px solid var(--line); border-radius: .8rem; padding: 1rem 1.2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .8rem; }
+    label { display: grid; gap: .25rem; font-size: .9rem; color: #cfe0f3; }
+    input, select, button, textarea { font: inherit; padding: .5rem .7rem; border-radius: .5rem; border: 1px solid var(--line); background: #04121f; color: #fff; }
+    input[type=range] { padding: 0; }
+    button { cursor: pointer; background: var(--acc); color: #1b1400; font-weight: 700; border: 0; }
+    button.secondary { background: #1d4a78; color: #fff; }
+    .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+    .pill { display: inline-block; padding: .15rem .7rem; border-radius: 99px; font-weight: 700; font-size: .9rem; background: rgba(255,255,255,.12); }
+    .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; } td, th { text-align: start; padding: .25rem .5rem; border-bottom: 1px solid var(--line); }
+    pre { background: #04121f; padding: .8rem; border-radius: .5rem; overflow: auto; white-space: pre-wrap; direction: ltr; text-align: left; margin: 0; }
+    .text-out { background: #04121f; padding: .6rem .8rem; border-radius: .5rem; margin-top: .4rem; }
+    .muted { color: #a9bfd6; font-size: .9rem; }
+    .vscroll { max-height: 16rem; overflow: auto; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>اختبار صوت شاشة الانتظار</h1>
+    <p class="muted">افتح هذه الصفحة على نفس جهاز/متصفح الشاشة الفعلية، اضغط «نطق الآن»، ثم انسخ التقرير التشخيصي أسفل الصفحة.</p>
+  </header>
+
+  <section>
+    <h2>1) حالة المتصفح والأصوات</h2>
+    <div id="env" class="muted"></div>
+    <div class="row" style="margin-top:.6rem">
+      <span>صوت عربي مختار: <b id="v-ar">…</b></span>
+      <span>صوت إنجليزي مختار: <b id="v-en">…</b></span>
+    </div>
+    <div id="verdict" style="margin-top:.5rem"></div>
+    <details style="margin-top:.6rem"><summary>كل الأصوات المتاحة (<span id="v-count">0</span>)</summary>
+      <div class="vscroll"><table><thead><tr><th>الاسم</th><th>اللغة</th><th>محلي (بلا إنترنت)</th></tr></thead><tbody id="voices"></tbody></table></div>
+    </details>
+  </section>
+
+  <section>
+    <h2>2) نداء تجريبي</h2>
+    <div class="grid">
+      <label>رقم التذكرة <input id="ticket" value="A-025" dir="ltr"></label>
+      <label>رقم الشباك <input id="counter" type="number" min="0" max="99" value="2"></label>
+      <label>اللغة <select id="lang"><option value="both">عربي + إنجليزي</option><option value="ar">عربي</option><option value="en">إنجليزي</option></select></label>
+      <label>نطق الحرف <select id="letters"><option value="latin">لاتيني (A)</option><option value="arabic">عربي (إيه)</option></select></label>
+      <label>السرعة <input id="rate" type="range" min="0.5" max="2" step="0.05" value="0.9"><span id="rate-o" class="muted">0.9</span></label>
+      <label>النبرة <input id="pitch" type="range" min="0" max="2" step="0.05" value="1"><span id="pitch-o" class="muted">1</span></label>
+      <label>الصوت <input id="volume" type="range" min="0" max="1" step="0.05" value="1"><span id="volume-o" class="muted">1</span></label>
+      <label>التكرار <input id="repeat" type="number" min="1" max="5" value="1"></label>
+      <label>التأخير بين التكرار (ms) <input id="delay" type="number" min="0" max="30000" step="100" value="2500"></label>
+    </div>
+    <div class="row" style="margin-top:.8rem">
+      <button id="speak" type="button">نطق الآن</button>
+      <button id="stop" class="secondary" type="button">إيقاف</button>
+      <span>الحالة: <span id="state" class="pill">—</span></span>
+    </div>
+    <div id="texts"></div>
+  </section>
+
+  <section>
+    <h2>3) البديل المسجّل للعربية (<code dir="ltr">/media/audio/ar/</code>)</h2>
+    <p class="muted">يُستخدم تلقائياً فقط إذا لم يوجد صوت عربي في النظام. الفحص يتأكد من وجود كل الملفات المطلوبة على السيرفر.</p>
+    <div class="row"><button id="clips-check" class="secondary" type="button">فحص الملفات</button><span id="clips-out"></span></div>
+  </section>
+
+  <section>
+    <h2>4) تحويل رقم لكلمات</h2>
+    <div class="row"><input id="n-in" type="number" min="0" max="999999" value="125" style="width:10rem">
+      <span>عربي: <b id="n-ar"></b></span><span dir="ltr">EN: <b id="n-en"></b></span></div>
+  </section>
+
+  <section>
+    <h2>5) التقرير التشخيصي (انسخه إلى تقريرك)</h2>
+    <pre id="diag"></pre>
+    <div class="row" style="margin-top:.6rem"><button id="copy" class="secondary" type="button">نسخ</button></div>
+  </section>
+</main>
+<script src="audio/numbers.js"></script>
+<script src="audio/clips.js"></script>
+<script src="audio/announcer.js"></script>
+<script src="js/audio-test.js"></script>
+</body>
+</html>
