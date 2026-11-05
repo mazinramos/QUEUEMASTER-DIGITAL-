@@ -3,7 +3,8 @@
   'use strict';
   function cleanup(el) {
     try {
-      el.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); });
+      const vids = el.tagName === 'VIDEO' ? [el] : Array.from(el.querySelectorAll('video'));
+      vids.forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); }); // يحرر الفيديو فعلياً
     } catch (e) { /* تجاهل */ }
     el.remove();
   }

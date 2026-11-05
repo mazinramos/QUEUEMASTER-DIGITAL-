@@ -78,10 +78,13 @@
   }
 
   /* ---------- الإعلانات: الأهلية والترتيب ---------- */
+  /** الوسائط تُخدم فقط من /media/ على نفس الأصل (لا روابط خارجية ولا javascript:). */
+  const MEDIA_URL_RE = /^\/media\/[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+  function isSafeMediaUrl(u) { return typeof u === 'string' && MEDIA_URL_RE.test(u) && !u.includes('..'); }
   function isAdEligible(ad, nowMs, displayId) {
     if (!ad || !ad.isActive) return false;
     if (!['image', 'video', 'text'].includes(ad.mediaType)) return false;
-    if (ad.mediaType === 'text' ? !ad.bodyText : !ad.url) return false;
+    if (ad.mediaType === 'text' ? !ad.bodyText : !isSafeMediaUrl(ad.url)) return false;
     if (ad.startsAt && Date.parse(ad.startsAt) > nowMs) return false;
     if (ad.endsAt && Date.parse(ad.endsAt) <= nowMs) return false;
     if (ad.displayIds && displayId != null && !ad.displayIds.includes(Number(displayId))) return false;
@@ -193,7 +196,7 @@
   return {
     RECENT_MAX, FRESH_MS,
     normalizeService, normalizeCounter, normalizeTicket, normalizeSettings, normalizeAd,
-    isAdEligible, eligibleAds, createEventDeduper, isFresh, createAnnounceGate,
+    isSafeMediaUrl, isAdEligible, eligibleAds, createEventDeduper, isFresh, createAnnounceGate,
     emptyState, applyBootstrap, applyQueueUpdated, applyTicketEvent,
   };
 }));

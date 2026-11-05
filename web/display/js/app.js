@@ -70,7 +70,7 @@
     if (!w || !h) return;
     num.style.fontSize = '100px';
     const nw = num.scrollWidth || 1; const nh = num.scrollHeight || 1;
-    const k = Math.min((w * 0.96) / nw, (h * 0.98) / nh);
+    const k = Math.min((w * 0.96) / nw, (h * 0.98) / nh) * (S.state.focus ? 1 : 0.35); // الحالة الفارغة أصغر
     num.style.fontSize = Math.max(24, Math.min(2400, 100 * k)) + 'px';
   }
 
