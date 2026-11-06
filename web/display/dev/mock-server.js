@@ -26,8 +26,8 @@ async function createMock({ port = 3100, uploadsDir } = {}) {
 
   const app = express();
   const server = http.createServer(app);
-  const io = new Server(server);
-  const emitToRoom = (room, event, payload) => io.to(room).emit(event, payload);
+  const io = new Server(server, { path: '/socket.io', serveClient: false }); // مثل حساب 2: لا يخدم عميل socket.io
+  const emit = (clinicId, event, payload) => io.to(`clinic:${clinicId}:display`).emit(event, { eventId: crypto.randomUUID(), ts: new Date().toISOString(), clinicId, ...payload }); // = emitToDisplays عند حساب 2
   const emitClinic = (event, payload, rooms = ['display']) => {
     const msg = { eventId: crypto.randomUUID(), ts: new Date().toISOString(), clinicId: clinic.clinicId, ...payload };
     rooms.forEach((r) => io.to(`clinic:${clinic.clinicId}:${r}`).emit(event, msg));
@@ -35,16 +35,18 @@ async function createMock({ port = 3100, uploadsDir } = {}) {
   };
 
   // مصادقة Socket.IO كما سيفعل حساب 2: كوكي qm.display
+  const { resolveDisplay } = require('../../../server/src/services/displayAuth'); // العقد الفعلي مع sockets حساب 2
   io.use((socket, next) => {
-    const d = svc.authenticateDisplay(db, socket.handshake.headers.cookie);
-    if (!d) return next(new Error('unauthorized'));
+    const v = svc.parseCookies(socket.handshake.headers.cookie)['qm.display'];
+    const d = v && resolveDisplay(v, db);
+    if (!d) return next(new Error('UNAUTHENTICATED'));
     socket.data.display = d; return next();
   });
-  io.on('connection', (socket) => { socket.join(`clinic:${socket.data.display.clinic_id}:display`); });
+  io.on('connection', (socket) => { socket.join(`clinic:${socket.data.display.clinicId}:display`); });
 
   app.use('/dev', express.json());
   app.use(createDisplayRouter({
-    getDb: () => db, getUploadsDir: () => uploads, emitToRoom,
+    getDb: () => db, getUploadsDir: () => uploads, emit,
     getStaff: (req) => (req.headers['x-dev-admin'] ? { id: 1, role: 'admin', clinicId: clinic.clinicId } : null),
   }));
   app.use('/display/dev', (req, res) => res.status(404).end());

@@ -310,7 +310,7 @@
     if (ioTimer) return;
     ioTimer = setInterval(() => {
       if (window.io) { clearInterval(ioTimer); ioTimer = null; cb(); return; }
-      const sc = document.createElement('script'); sc.src = '/socket.io/socket.io.js'; sc.onerror = () => sc.remove();
+      const sc = document.createElement('script'); sc.src = 'vendor/socket.io.min.js'; sc.onerror = () => sc.remove();
       document.head.appendChild(sc);
     }, 10000);
   }

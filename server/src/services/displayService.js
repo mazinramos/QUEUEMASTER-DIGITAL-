@@ -45,7 +45,12 @@ function isValidCodeShape(code) {
 /* ---------- الكوكي الموقّع ---------- */
 let fallbackSecret = null;
 function getSecret() {
-  const s = process.env.DISPLAY_COOKIE_SECRET || process.env.SESSION_SECRET;
+  if (process.env.DISPLAY_COOKIE_SECRET) return process.env.DISPLAY_COOKIE_SECRET;
+  try { // سر الجلسات من config حساب 1 (إلزامي في الإنتاج) مع فصل النطاق حتى لا يصلح كوكي الشاشة كسر عام
+    const cfg = require('../config');
+    if (cfg && cfg.sessionSecret) return crypto.createHash('sha256').update('qm.display:' + cfg.sessionSecret).digest('hex');
+  } catch (e) { /* config غير متاح (اختبارات معزولة) */ }
+  const s = process.env.SESSION_SECRET;
   if (s) return s;
   if (!fallbackSecret) {
     fallbackSecret = crypto.randomBytes(32).toString('hex');
@@ -177,7 +182,7 @@ function getBootstrap(db, display, now = new Date()) {
   const bd = businessDate(clinic.timezone, now);
   const where = `WHERE t.clinic_id = ? AND t.business_date = ?`;
   const current = db.prepare(`${TICKET_SELECT} ${where} AND t.status IN ('called','serving') ORDER BY t.called_at DESC, t.id DESC`).all(clinic.id, bd).map(ticketDto);
-  const next = db.prepare(`${TICKET_SELECT} ${where} AND t.status = 'waiting' ORDER BY t.priority DESC, t.issued_at ASC, t.id ASC LIMIT 3`).all(clinic.id, bd).map(ticketDto);
+  const next = db.prepare(`${TICKET_SELECT} ${where} AND t.status = 'waiting' ORDER BY t.priority DESC, t.issued_at ASC, t.seq_number ASC, t.id ASC LIMIT 3`).all(clinic.id, bd).map(ticketDto);
   const recent = db.prepare(`${TICKET_SELECT} ${where} AND t.called_at IS NOT NULL AND t.status IN ('called','serving','completed','skipped') ORDER BY t.called_at DESC, t.id DESC LIMIT 6`).all(clinic.id, bd).map(ticketDto);
   const waitingCount = db.prepare(`SELECT COUNT(*) AS n FROM tickets t ${where} AND t.status = 'waiting'`).get(clinic.id, bd).n;
   return {
@@ -193,9 +198,11 @@ function getBootstrap(db, display, now = new Date()) {
 }
 
 /* ---------- إدارة الشاشات (أدمن) ---------- */
+let auditIp = null; // يضبطه الراوتر لكل طلب (متزامن، better-sqlite3 بلا await)
+function setAuditIp(ip) { auditIp = ip || null; }
 function audit(db, clinicId, staffId, action, entityId, details) {
-  db.prepare(`INSERT INTO audit_logs (clinic_id, staff_id, action, entity, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?)`)
-    .run(clinicId, staffId || null, action, 'display', String(entityId), details ? JSON.stringify(details) : null, nowIso());
+  db.prepare(`INSERT INTO audit_logs (clinic_id, staff_id, action, entity, entity_id, details, ip, created_at) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(clinicId, staffId || null, action, 'display', String(entityId), details ? JSON.stringify(details) : null, auditIp, nowIso());
 }
 
 function uniqueCode(db) {
@@ -289,6 +296,6 @@ module.exports = {
   COOKIE_NAME, DEFAULT_SETTINGS,
   generatePairingCode, normalizeCode, formatCode, hashCode, isValidCodeShape,
   makeCookieValue, parseCookies, authenticateDisplay, findDisplayByCode,
-  businessDate, settingsDto, activeAds, getBootstrap,
+  businessDate, settingsDto, activeAds, getBootstrap, setAuditIp,
   createDisplay, getDisplay, listDisplays, updateSettings, updateDisplay, resetPairing, deleteDisplay,
 };

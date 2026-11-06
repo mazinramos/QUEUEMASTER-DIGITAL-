@@ -85,7 +85,8 @@ function send(req, res, info) {
   stream.pipe(res);
 }
 
-function createMediaHandlers(getUploadsDir = defaultUploadsDir) {
+function createMediaHandlers(getUploadsDirFn) {
+  const getUploadsDir = () => (getUploadsDirFn && getUploadsDirFn()) || defaultUploadsDir();
   return {
     file(req, res) {
       const info = resolveSafe(getUploadsDir(), [String(req.params.file)], MEDIA_MIME);
