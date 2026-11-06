@@ -65,6 +65,23 @@ class Jar { constructor() { this.c = {}; } set(res) { (res.headers.getSetCookie?
     await sleep(300);
     check('الشاشة والموظف استلما ticket:created', ld.some(x => x.ev === 'ticket:created') && ls.some(x => x.ev === 'ticket:created'));
 
+    // 3b) إعلان: رفع من الأدمن ← يظهر في bootstrap ← يُخدَّم عبر /media ← بث advertisement:updated للشاشة
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const fd = new FormData(); fd.append('title', 'إعلان اختبار'); fd.append('media_type', 'image'); fd.append('duration_sec', '10');
+    fd.append('file', new Blob([PNG], { type: 'image/png' }), 'a.png');
+    const up = await fetch(B + '/api/admin/ads', { method: 'POST', headers: { cookie: admin.jar.get(), 'x-csrf-token': admin.csrf }, body: fd });
+    const upj = await up.json().catch(() => null);
+    check('رفع إعلان صورة من الأدمن', up.status === 201 && upj?.ok, `HTTP ${up.status} ${upj?.ok ? '' : JSON.stringify(upj?.error)}`);
+    const adUrl = upj?.data?.ad?.url;
+    if (adUrl) {
+      const mr = await fetch(B + adUrl);
+      check('الملف المرفوع يُخدَّم عبر /media للشاشة', mr.status === 200 && mr.headers.get('content-type') === 'image/png', `HTTP ${mr.status}`);
+      await sleep(400);
+      check('الشاشة تستلم advertisement:updated', ld.some(x => x.ev === 'advertisement:updated'));
+      const bs2 = await api(dj, 'GET', '/api/display/bootstrap');
+      check('الإعلان ضمن bootstrap الشاشة', JSON.stringify(bs2.body?.data?.ads || []).includes('إعلان اختبار'));
+    }
+
     // 4) نداء
     const counterId = staff.me.counter?.id ?? (await api(staff.jar, 'GET', '/api/queue/state')).body?.data?.counter?.id;
     const cn = await api(staff.jar, 'POST', '/api/queue/call-next', { counterId }, staff.csrf);
