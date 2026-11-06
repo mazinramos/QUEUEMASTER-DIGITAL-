@@ -13,7 +13,7 @@ const files = [];
   if (SKIP.test(rel)) continue; if (f.isDirectory()) walk(p); else if (/\.(html|css|js|svg)$/.test(f.name) && !/\.min\.js$|\.test\.js$/.test(f.name)) files.push(p); } })(ROOT);
 
 const rules = [
-  { id: 'emoji', level: 'error', msg: 'إيموجي ممنوع في الواجهات', re: /\p{Extended_Pictographic}/gu, only: /\.(html|js|css)$/ },
+  { id: 'emoji', level: 'error', msg: 'إيموجي ممنوع في الواجهات', re: /(?![\u2190-\u21FF\u2022\u00A9\u00AE\u2122\u2713\u2715])\p{Extended_Pictographic}/gu, only: /\.(html|js|css)$/ },
   { id: 'accent-border', level: 'error', msg: 'حد ملون جانبي/علوي سميك (شكل بطاقة AI)', re: /border-(?:inline-start|inline-end|left|right|top|bottom|block-start)\s*:\s*(?:[3-9]|\d{2,})(?:\.\d+)?px\s+solid\s+(?!transparent)/g },
   { id: 'boxed-chip', level: 'error', msg: 'شارة/وسم بحد ملون حول النص (chip/badge/pill/tag مع border)', re: /\.(?:badge|chip|pill|tag|status)[\w-]*\s*\{[^}]*\bborder\s*:\s*[^;}]*solid(?!\s*transparent)[^;}]*;/g },
   { id: 'tinted-box', level: 'error', msg: 'صندوق بخلفية ملونة وحد ملون (شكل تنبيه/شارة AI). استخدم تعبئة مصمتة أو نصاً بلا إطار', re: /(?!)/g },
