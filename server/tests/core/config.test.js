@@ -66,7 +66,9 @@ test('COOKIE_SECURE only accepts auto|true|false', () => {
   for (const v of ['auto', 'true', 'false']) assert.equal(run({ NODE_ENV: 'development', DATA_DIR: tmp(), COOKIE_SECURE: v }).code, 0);
 });
 
-test('.dev-secrets.json is ignored by git', () => {
+test('.dev-secrets.json is ignored by git', (t) => {
+  const inRepo = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: path.join(SERVER, '..') });
+  if (inRepo.status !== 0) return t.skip('not inside a git work tree');
   const r = spawnSync('git', ['check-ignore', '-q', 'server/data/.dev-secrets.json'], { cwd: path.join(SERVER, '..') });
   assert.equal(r.status, 0);
 });

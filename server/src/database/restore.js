@@ -39,6 +39,7 @@ async function restore(source, { force = false } = {}) {
     safety = path.join(backup.backupsDir(), `pre-restore-${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
     const cur = new Database(dbPath, { fileMustExist: true });
     try { await cur.backup(safety); } finally { cur.close(); }
+    backup.finalizeBackupFile(safety);
   }
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const tmp = `${dbPath}.restoring`;

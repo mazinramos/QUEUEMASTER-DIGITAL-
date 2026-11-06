@@ -48,6 +48,22 @@ test('backup opens as a valid DB and holds the same data', async () => {
   } finally { copy.close(); }
 });
 
+test('a backup is ONE self-contained file: journal_mode=DELETE, no -wal/-shm left behind, also after retention', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qm-side-'));
+  const live = new Database(path.join(dir, 'live.db')); live.pragma('journal_mode = WAL');
+  require('../../src/database/migrate').runMigrations(live);
+  const names = [];
+  for (let i = 0; i < 5; i++) names.push((await backup.createBackup({ db: live })).name);
+  const files = fs.readdirSync(backup.backupsDir());
+  assert.deepEqual(files.filter((f) => !/^qm-\d{8}-\d{4}(-\d+)?\.db$/.test(f)), [], `stray files: ${files}`);
+  assert.equal(files.length, 3); // BACKUP_KEEP=3, and removed ones took their sidecars with them
+  const copy = new Database(path.join(backup.backupsDir(), names[4]), { readonly: true });
+  assert.equal(copy.pragma('journal_mode', { simple: true }), 'delete');
+  copy.close();
+  assert.deepEqual(fs.readdirSync(backup.backupsDir()).filter((f) => /-(wal|shm)$/.test(f)), []);
+  live.close(); fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('consistent while the DB is being written to during the backup (real file DB)', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qm-live-'));
   const live = new Database(path.join(dir, 'live.db'));
@@ -187,6 +203,8 @@ test('restore: backup -> lose data -> restore brings it back and keeps a safety 
   assert.equal(s.prepare('SELECT COUNT(*) c FROM tickets').get().c, 0);       // safety copy = the state before restoring
   s.close();
   assert.ok(!fs.readdirSync(dir).some((f) => f.endsWith('.restoring')));
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'backups')).filter((f) => /-(wal|shm)$/.test(f)), [], 'no sidecar files next to backups');
+  assert.equal(countTickets(env), 7); // the restored DB opens normally afterwards (switches back to WAL)
 });
 
 test('restore refuses an invalid backup and leaves the database untouched', () => {

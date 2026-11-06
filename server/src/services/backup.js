@@ -36,6 +36,24 @@ function verifyBackup(file) {
   } finally { if (db) db.close(); }
 }
 
+// db.backup() يُنتج ملفاً بوضع WAL؛ فتح هذا الملف (حتى للقراءة) يترك ملفي -wal/-shm بجانبه.
+// نحوّله إلى journal_mode=DELETE ليصبح ملفاً واحداً مكتفياً بذاته (يُنسخ/يُنزَّل/يُستعاد دون ملحقات).
+function finalizeBackupFile(file) {
+  const db = new Database(file, { fileMustExist: true });
+  try { db.pragma('journal_mode = DELETE'); } finally { db.close(); }
+  for (const ext of ['-wal', '-shm']) { try { fs.unlinkSync(file + ext); } catch { /* none */ } }
+}
+const removeWithSidecars = (file) => { for (const ext of ['', '-wal', '-shm']) { try { fs.unlinkSync(file + ext); } catch { /* none */ } } };
+
+// نسخة فاشلة تُحفظ للتشخيص باسم *.corrupt (واحدة فقط، الأحدث) حتى لا تتراكم
+function quarantine(file, target) {
+  try {
+    for (const f of fs.readdirSync(backupsDir())) if (f.endsWith('.corrupt')) fs.unlinkSync(path.join(backupsDir(), f));
+    for (const ext of ['-wal', '-shm']) { try { fs.unlinkSync(file + ext); } catch { /* none */ } }
+    fs.renameSync(file, `${target}.corrupt`);
+  } catch { /* best effort */ }
+}
+
 function listBackups() {
   const dir = backupsDir();
   if (!fs.existsSync(dir)) return [];
@@ -53,7 +71,7 @@ function listBackups() {
 function applyRetention(keep = keepCount()) {
   const removed = [];
   for (const b of listBackups().slice(keep)) {
-    try { fs.unlinkSync(path.join(backupsDir(), b.name)); removed.push(b.name); } catch { /* ignore */ }
+    removeWithSidecars(path.join(backupsDir(), b.name)); removed.push(b.name);
   }
   return removed;
 }
@@ -88,17 +106,18 @@ async function createBackup({ db = getDb(), reason = 'manual' } = {}) {
     const tmp = `${target}.partial`;
     try {
       await db.backup(tmp);
+      try { finalizeBackupFile(tmp); } catch (e) { quarantine(tmp, target); throw new Error(`backup failed integrity check (${e.message})`); }
       fs.renameSync(tmp, target);
       const check = verifyBackup(target);
       if (!check.ok) {
-        fs.renameSync(target, `${target}.corrupt`); // لا يُحتسب نسخة صالحة ولا يظهر في القائمة
+        quarantine(target, target); // لا يُحتسب نسخة صالحة ولا يظهر في القائمة
         throw new Error(`backup failed integrity check (${check.integrity})`);
       }
       const removed = applyRetention();
       const st = fs.statSync(target);
       return { name, sizeBytes: st.size, createdAt: st.mtime.toISOString(), integrity: check.integrity, tickets: check.tickets, removed, reason };
     } finally {
-      try { fs.unlinkSync(tmp); } catch { /* already moved */ }
+      removeWithSidecars(tmp); // no-op if already moved
     }
   })(), timeoutMs()).finally(() => { running = null; });
   return running;
@@ -126,7 +145,7 @@ function startScheduler({ log = console, intervalMs: every, allowMemory = false 
 }
 function stopScheduler() { if (timer) { clearInterval(timer); timer = null; } }
 
-module.exports = { createBackup, listBackups, applyRetention, verifyBackup, resolveBackupPath, isValidName, startScheduler, stopScheduler, backupsDir, NAME_RE };
+module.exports = { finalizeBackupFile, createBackup, listBackups, applyRetention, verifyBackup, resolveBackupPath, isValidName, startScheduler, stopScheduler, backupsDir, NAME_RE };
 
 if (require.main === module) {
   createBackup({ reason: 'cli' }).then((r) => { console.log(JSON.stringify(r, null, 2)); require('../database').close(); })
