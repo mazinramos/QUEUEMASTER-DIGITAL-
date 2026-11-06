@@ -243,6 +243,7 @@ function getDisplay(db, clinicId, id) {
   const d = db.prepare('SELECT id, clinic_id, name, is_active, created_at, updated_at FROM displays WHERE id = ? AND clinic_id = ?').get(id, clinicId);
   if (!d) return null;
   d.is_active = !!d.is_active;
+  d.isActive = d.is_active; // لوحة الأدمن (ح5) تقرأ isActive
   d.settings = settingsDto(db.prepare('SELECT * FROM display_settings WHERE display_id = ?').get(id));
   return d;
 }

@@ -200,6 +200,9 @@ test('إدارة الشاشات: صلاحيات، إنشاء، إعدادات، 
 
     t.setStaff({ id: 1, role: 'admin', clinicId: t.clinic.clinicId });
     assert.equal((await post(`${t.base}/api/admin/displays`, { name: '' })).status, 400);
+    const upd = await fetch(`${t.base}/api/admin/displays/${id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ is_active: false, name: 'جديد' }) });
+    const ud = (await upd.json()).data.display;
+    assert.equal(upd.status, 200); assert.equal(ud.isActive, false); assert.equal(ud.is_active, false); assert.equal(ud.name, 'جديد');
     assert.equal((await fetch(`${t.base}/api/admin/displays/${id}`, { method: 'DELETE' })).status, 200);
     assert.ok(t.db.prepare(`SELECT COUNT(*) n FROM audit_logs WHERE action LIKE 'display.%'`).get().n >= 3, 'تسجيل في audit_logs');
   } finally { t.close(); }
