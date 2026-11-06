@@ -1,7 +1,7 @@
 'use strict';
 const { AppError } = require('../utils/errors');
 const { fail } = require('../utils/respond');
-const config = require('../config');
+const logger = require('../utils/logger');
 
 function notFoundApi(req, res) {
   return fail(res, 404, 'NOT_FOUND', 'Route not found');
@@ -14,7 +14,8 @@ function errorHandler(err, req, res, next) {
   if (err && err.type === 'entity.parse.failed') return fail(res, 400, 'VALIDATION', 'Malformed JSON');
   if (err && err.type === 'entity.too.large') return fail(res, 400, 'VALIDATION', 'Payload too large');
   if (err && err.code === 'EBADCSRFTOKEN') return fail(res, 403, 'FORBIDDEN', 'Invalid CSRF token');
-  if (config.env !== 'test') console.error('[error]', err);
+  logger.error('unhandled error', { reqId: req.id, path: logger.safePath(req.originalUrl), message: err && err.message, stack: err && err.stack });
+  if (req.id) res.set('X-Request-Id', req.id);
   return fail(res, 500, 'INTERNAL', 'Internal server error');
 }
 module.exports = { errorHandler, notFoundApi };

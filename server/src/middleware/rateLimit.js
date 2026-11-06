@@ -16,4 +16,10 @@ const loginLimiter = rateLimit({
 const strictLimiter = rateLimit({ // csrf bootstrap / setup: stop anonymous session spam
   windowMs: 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false, handler,
 });
-module.exports = { apiLimiter, loginLimiter, strictLimiter };
+// تُحتسب ردود 401 فقط (رمز خاطئ)؛ أخطاء التحقق 400 برمز صحيح لا تستهلك الحد.
+const superLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, limit: 10, skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode !== 401,
+  standardHeaders: true, legacyHeaders: false, handler,
+});
+module.exports = { apiLimiter, loginLimiter, strictLimiter, superLimiter };

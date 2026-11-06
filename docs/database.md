@@ -187,6 +187,19 @@ CREATE TABLE sessions (  -- يستخدمه حساب 1 (store للجلسات)
   sid TEXT PRIMARY KEY, staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE,
   data TEXT NOT NULL, expires_at TEXT NOT NULL
 );
+
+-- migration 002_login_attempts.sql (حساب 1، قفل الدخول المؤقت؛ معتمد من المشرف في ACCOUNT-1-PHASE3)
+CREATE TABLE login_attempts (
+  scope TEXT NOT NULL CHECK (scope IN ('user','ip')),
+  key TEXT NOT NULL,                      -- user: 's:<staff_id>' أو 'u:<username>' لاسم غير موجود | ip: العنوان
+  staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE,
+  count INTEGER NOT NULL DEFAULT 0,       -- فشل متتالٍ داخل النافذة؛ يصفّر عند القفل
+  locked_until TEXT,                      -- UTC ISO، NULL = غير مقفول
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  PRIMARY KEY (scope, key)
+);
+CREATE INDEX idx_login_attempts_staff ON login_attempts (staff_id);
+CREATE INDEX idx_login_attempts_updated ON login_attempts (updated_at);
 ```
 
 ## قواعد
