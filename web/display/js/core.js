@@ -33,7 +33,7 @@
     return {
       number: String(number),
       status: t.status || 'waiting',
-      service: normalizeService(t.service),
+      service: (typeof t.service === 'string' && (t.serviceEn || t.service_en)) ? { prefix: '', name_ar: t.service, name_en: t.serviceEn || t.service_en } : normalizeService(t.service),
       counter: normalizeCounter(counter !== undefined ? counter : t.counter),
       calledAt: first(t, ['calledAt', 'called_at']) || null,
     };

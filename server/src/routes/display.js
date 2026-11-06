@@ -23,12 +23,23 @@ function resolveDb() {
   if (!db || typeof db.prepare !== 'function') throw new Error('database module لا يعيد better-sqlite3 instance');
   return db;
 }
-function resolveEmitToRoom() {
+/** بث لغرفة شاشات العيادة عبر واجهة حساب 2 (الغلاف eventId/ts/clinicId يضيفه هو). */
+function resolveEmit() {
   try {
-    const s = require('../sockets'); // حساب 2
-    if (typeof s.emitToRoom === 'function') return s.emitToRoom;
+    const s = require('../sockets');
+    if (typeof s.emitToDisplays === 'function') return (clinicId, ev, payload) => s.emitToDisplays(clinicId, ev, payload);
+    if (typeof s.emitToRoom === 'function') return (clinicId, ev, payload) => s.emitToRoom(`clinic:${clinicId}:display`, ev, payload, clinicId);
   } catch { /* لم يجهز بعد */ }
   return null;
+}
+/** middleware حساب 1 الحقيقي (requireRole('admin') = requireAuth + رتبة)؛ null إن لم يتوفر. */
+function loadAdminChain() {
+  try { const m = require('../middleware'); const c = m.requireRole('admin'); return Array.isArray(c) ? c : [c]; } catch { return null; }
+}
+function runChain(chain, req, res, next) {
+  let i = 0;
+  const step = (err) => { if (err) return next(err); const fn = chain[i++]; return fn ? fn(req, res, step) : next(); };
+  step();
 }
 /** الموظف الحالي كما يضعه middleware حساب 1 (req.staff أو req.user أو req.session.staff). */
 function currentStaff(req) {
@@ -49,18 +60,24 @@ const settingsSchema = z.object({
 const createSchema = z.object({ name: z.string().trim().min(1).max(80), settings: settingsSchema.optional() }).strict();
 const updateSchema = z.object({ name: z.string().trim().min(1).max(80).optional(), is_active: z.boolean().optional() }).strict();
 
+function secureCookie(req) {
+  try { const c = require('../config'); if (c.session && typeof c.session.secureCookie === 'boolean') return c.session.secureCookie; } catch { /* اختبارات معزولة */ }
+  return !!req.secure;
+}
+
 function createDisplayRouter(deps = {}) {
   const getDb = deps.getDb || resolveDb;
-  const getEmit = deps.emitToRoom !== undefined ? () => deps.emitToRoom : resolveEmitToRoom;
+  const getEmit = deps.emit !== undefined ? () => deps.emit : resolveEmit;
   const getStaff = deps.getStaff || currentStaff;
   const secret = deps.secret; // اختياري؛ الافتراضي من البيئة
-  const media = createMediaHandlers(deps.getUploadsDir);
+  const media = createMediaHandlers(deps.getUploadsDir || (() => { try { return require('../config').uploadsDir; } catch { return undefined; } }));
   const router = express.Router();
   const json = express.json({ limit: '16kb' });
 
   const withDb = (fn) => (req, res, next) => {
     let db;
     try { db = getDb(); } catch (e) { return fail(res, 503, 'UNAVAILABLE', 'قاعدة البيانات غير جاهزة'); }
+    svc.setAuditIp(req.ip);
     try { return fn(req, res, db); } catch (e) { return next(e); }
   };
 
@@ -83,7 +100,7 @@ function createDisplayRouter(deps = {}) {
     if (!display) { noteFail(ip); return fail(res, 404, 'NOT_FOUND', 'كود الإقران غير صحيح'); }
     attempts.delete(ip);
     res.cookie(svc.COOKIE_NAME, svc.makeCookieValue(display, secret), {
-      httpOnly: true, sameSite: 'lax', secure: !!req.secure, path: '/', maxAge: 365 * 24 * 3600 * 1000,
+      httpOnly: true, sameSite: 'lax', secure: secureCookie(req), path: '/', maxAge: 365 * 24 * 3600 * 1000,
     });
     const clinic = db.prepare('SELECT name_ar, name_en FROM clinics WHERE id = ?').get(display.clinic_id);
     res.setHeader('Cache-Control', 'no-store');
@@ -99,6 +116,13 @@ function createDisplayRouter(deps = {}) {
 
   /* ---- أدمن ---- */
   const requireAdmin = (req, res, next) => {
+    if (!deps.getStaff) { // الإنتاج: middleware حساب 1 (جلسة، تغيير كلمة المرور، الرتبة)، ثم فحص العيادة أدناه
+      const chain = loadAdminChain();
+      if (chain) return runChain(chain, req, res, (err) => (err ? next(err) : finishAdmin(req, res, next)));
+    }
+    return finishAdmin(req, res, next);
+  };
+  const finishAdmin = (req, res, next) => {
     const s = getStaff(req);
     if (!s) return fail(res, 401, 'UNAUTHENTICATED', 'يلزم تسجيل الدخول');
     if (s.role !== 'admin' || s.clinicId == null) return fail(res, 403, 'FORBIDDEN', 'غير مصرح');
@@ -117,9 +141,7 @@ function createDisplayRouter(deps = {}) {
   const notify = (clinicId, event, payload) => {
     const emit = getEmit();
     if (!emit) return;
-    try {
-      emit(`clinic:${clinicId}:display`, event, { eventId: require('crypto').randomUUID(), ts: new Date().toISOString(), clinicId, ...payload });
-    } catch (e) { console.error('[display] emit failed', e.message); }
+    try { emit(clinicId, event, payload); } catch (e) { console.error('[display] emit failed', e.message); }
   };
 
   router.get('/api/admin/displays', requireAdmin, withDb((req, res, db) => ok(res, { displays: svc.listDisplays(db, req.adminStaff.clinicId) })));
@@ -158,6 +180,9 @@ function createDisplayRouter(deps = {}) {
     const id = idParam(req, res); if (id === null) return;
     return svc.deleteDisplay(db, req.adminStaff.clinicId, id, req.adminStaff.id) ? ok(res, { deleted: true }) : fail(res, 404, 'NOT_FOUND', 'الشاشة غير موجودة');
   }));
+
+  /* ---- حجب أدوات التطوير من الـ static (app.js يخدم web/display كاملاً) ---- */
+  router.use('/display/dev', (req, res) => fail(res, 404, 'NOT_FOUND', 'Not found'));
 
   /* ---- الوسائط ---- */
   router.get('/media/audio/:lang/:file', media.audio);

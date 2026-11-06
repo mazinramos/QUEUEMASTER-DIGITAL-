@@ -11,6 +11,7 @@ const svc = require('../../../../server/src/services/displayService');
 const { createDisplayRouter } = require('../../../../server/src/routes/display');
 
 const SECRET = 'test-secret';
+process.env.DISPLAY_COOKIE_SECRET = SECRET; // نفس السر لـ resolveDisplay (الإنتاج: كلاهما getSecret())
 async function setup(opts = {}) {
   const db = h.createTestDb();
   const clinic = h.seedClinic(db);
@@ -27,7 +28,7 @@ async function setup(opts = {}) {
   const app = express();
   app.use(createDisplayRouter({
     getDb: () => db, secret: SECRET, getUploadsDir: () => uploads,
-    emitToRoom: (room, ev, p) => emitted.push({ room, ev, p }),
+    emit: (clinicId, ev, p) => emitted.push({ room: `clinic:${clinicId}:display`, ev, p }),
     getStaff: () => staff, pairLimit: opts.pairLimit || 10,
   }));
   app.use((err, req, res, next) => { res.status(500).json({ ok: false, error: { code: 'INTERNAL', message: err.message } }); });
@@ -183,7 +184,7 @@ test('إدارة الشاشات: صلاحيات، إنشاء، إعدادات، 
     assert.equal(s.volume, 0.4); assert.equal(s.audio_enabled, false); assert.equal(s.announce_lang, 'en'); assert.equal(s.repeat_count, 3);
     assert.equal(t.emitted.length, 1);
     assert.equal(t.emitted[0].room, `clinic:${t.clinic.clinicId}:display`); assert.equal(t.emitted[0].ev, 'display:settings_updated');
-    assert.equal(t.emitted[0].p.displayId, id); assert.ok(t.emitted[0].p.eventId);
+    assert.equal(t.emitted[0].p.displayId, id); assert.equal(t.emitted[0].p.settings.volume, 0.4);
 
     for (const bad of [{ volume: 2 }, { speech_rate: 0.1 }, { repeat_count: 9 }, { announce_lang: 'fr' }, { foo: 1 }, { volume: '1' }]) {
       assert.equal((await put(bad)).status, 400, JSON.stringify(bad));
@@ -199,6 +200,9 @@ test('إدارة الشاشات: صلاحيات، إنشاء، إعدادات، 
 
     t.setStaff({ id: 1, role: 'admin', clinicId: t.clinic.clinicId });
     assert.equal((await post(`${t.base}/api/admin/displays`, { name: '' })).status, 400);
+    const upd = await fetch(`${t.base}/api/admin/displays/${id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ is_active: false, name: 'جديد' }) });
+    const ud = (await upd.json()).data.display;
+    assert.equal(upd.status, 200); assert.equal(ud.isActive, false); assert.equal(ud.is_active, false); assert.equal(ud.name, 'جديد');
     assert.equal((await fetch(`${t.base}/api/admin/displays/${id}`, { method: 'DELETE' })).status, 200);
     assert.ok(t.db.prepare(`SELECT COUNT(*) n FROM audit_logs WHERE action LIKE 'display.%'`).get().n >= 3, 'تسجيل في audit_logs');
   } finally { t.close(); }
@@ -282,9 +286,32 @@ test('media/audio: ar/en فقط وامتدادات صوت فقط', async () => {
   } finally { t.close(); }
 });
 
+test('مجلد dev/ محجوب من الخدمة الثابتة', async () => {
+  const t = await setup();
+  try { for (const p of ['/display/dev/package.json', '/display/dev/tests/core.test.js', '/display/dev']) assert.equal((await fetch(`${t.base}${p}`)).status, 404, p); } finally { t.close(); }
+});
+
 test('businessDate يحترم منطقة العيادة', () => {
   const d = new Date('2026-11-05T22:30:00Z');
   assert.equal(svc.businessDate('Africa/Cairo', d), '2026-11-06');
   assert.equal(svc.businessDate('UTC', d), '2026-11-05');
   assert.equal(svc.businessDate('Not/AZone', d), '2026-11-05');
+});
+
+test('displayAuth.resolveDisplay: عقد حساب 2 (قيمة الكوكي -> {displayId, clinicId})', async () => {
+  const t = await setup();
+  try {
+    const { resolveDisplay } = require('../../../../server/src/services/displayAuth');
+    const { display, pairingCode } = svc.createDisplay(t.db, { clinicId: t.clinic.clinicId, name: 'x' });
+    const ck = cookieFrom(await post(`${t.base}/api/display/pair`, { code: pairingCode }));
+    const value = decodeURIComponent(ck.split('=').slice(1).join('='));
+    assert.deepEqual(resolveDisplay(value, t.db), { displayId: display.id, clinicId: t.clinic.clinicId });
+    for (const bad of [null, undefined, '', 'x', '1.abc', `${display.id}.${'0'.repeat(64)}`, 'a'.repeat(500), 123]) assert.equal(resolveDisplay(bad, t.db), null, String(bad).slice(0, 20));
+    svc.updateDisplay(t.db, t.clinic.clinicId, display.id, { is_active: false }, 1);
+    assert.equal(resolveDisplay(value, t.db), null, 'شاشة معطلة');
+    svc.updateDisplay(t.db, t.clinic.clinicId, display.id, { is_active: true }, 1);
+    assert.deepEqual(resolveDisplay(value, t.db).displayId, display.id);
+    t.db.prepare('UPDATE clinics SET is_active = 0 WHERE id = ?').run(t.clinic.clinicId);
+    assert.equal(resolveDisplay(value, t.db), null, 'عيادة معطلة');
+  } finally { t.close(); }
 });
