@@ -68,7 +68,7 @@ async function smoke() {
   const cwd = path.join(ROOT, 'server');
   if (run('npm', ['run', '-s', 'migrate'], { cwd, env }).code !== 0) return rec('smoke migrate', false);
   const seed = run('npm', ['run', '-s', 'seed'], { cwd, env });
-  const cred = (u) => (seed.out.match(new RegExp(`\\b${u}\\s+(\\S+)`)) || [])[1];
+  const cred = (u) => (seed.out.match(new RegExp(`^\\s*\\S+\\s+${u}\\s+(\\S+)`, 'm')) || [])[1];
   const srv = spawn(process.execPath, ['src/server.js'], { cwd, env, stdio: 'ignore' });
   const B = `http://localhost:${port}`;
   try {
