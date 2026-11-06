@@ -170,6 +170,10 @@ try:
         except urllib.error.HTTPError as e: ok = e.code == 404
         check('/media يمنع امتداد json', ok)
 
+        try: urllib.request.urlopen(BASE + '/display/dev/package.json'); ok = False
+        except urllib.error.HTTPError as e: ok = e.code == 404
+        check('/display/dev محجوب على السيرفر الحقيقي', ok)
+
         # تعطيل/إعادة ضبط الكود يفصل الشاشة
         st, r2 = admin.req('POST', f'/api/admin/displays/{did}/reset-pairing', {})
         check('reset-pairing ينجح ويعيد كوداً جديداً', st == 200 and r2['data']['pairingCode'] != code, str(st))
