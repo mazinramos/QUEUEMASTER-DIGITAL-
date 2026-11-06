@@ -9,9 +9,15 @@ const path = require('path');
 const { z } = require('zod');
 const { AdsError, safeUnlink, isValidStoredName } = require('./adsUpload');
 
-const DEFAULT_UPLOADS_DIR = process.env.UPLOADS_DIR
-  ? path.resolve(process.env.UPLOADS_DIR)
-  : path.resolve(__dirname, '../../uploads');
+/**
+ * مجلد الرفع: مصدر الحقيقة الوحيد هو config.uploadsDir (نفسه الذي يخدم منه /media عند ح4)،
+ * وإلا (config غير متاح في اختبارات معزولة) UPLOADS_DIR ثم server/uploads. يُحل عند الاستخدام لا عند التحميل.
+ */
+function resolveUploadsDir() {
+  try { const c = require('../config'); if (c && c.uploadsDir) return c.uploadsDir; } catch (_) { /* معزول */ }
+  return process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : path.resolve(__dirname, '../../uploads');
+}
+const DEFAULT_UPLOADS_DIR = resolveUploadsDir(); // للتوافق؛ الخدمة الافتراضية تستعمل resolveUploadsDir() عند الإنشاء
 
 /* ---------- wiring افتراضي (يُحل عند أول استخدام) ---------- */
 function defaultGetDb() {
@@ -101,7 +107,7 @@ function parseDisplayIds(v) {
 function createAdsService({
   getDb = defaultGetDb,
   emit = defaultEmit,
-  uploadsDir = DEFAULT_UPLOADS_DIR,
+  uploadsDir = resolveUploadsDir(),
   now = () => new Date(),
   logger = console,
 } = {}) {
@@ -334,4 +340,4 @@ function stripUndefined(o) {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 }
 
-module.exports = { createAdsService, computeStatus, adSchema, DEFAULT_UPLOADS_DIR };
+module.exports = { createAdsService, computeStatus, adSchema, DEFAULT_UPLOADS_DIR, resolveUploadsDir };

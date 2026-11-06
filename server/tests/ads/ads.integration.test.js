@@ -25,6 +25,7 @@ describe('ads × الباك إند الحقيقي', { skip: ready ? false : 'ح1
     process.env.DB_PATH = ':memory:';
     uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qm-int-up-'));
     process.env.UPLOADS_DIR = uploadsDir;
+    require(path.join(SRC, 'config')).uploadsDir = uploadsDir; // مصدر وحيد: الرفع (ح5) و/media (ح4) يقرآن config.uploadsDir
     const { createApp } = require(path.join(SRC, 'app.js'));
     ({ getDb: global.__getDb } = require(path.join(SRC, 'database')));
     const app = createApp();

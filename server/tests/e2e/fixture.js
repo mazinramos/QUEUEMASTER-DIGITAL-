@@ -20,6 +20,7 @@ async function startFixture() {
   process.env.TICKET_TOKEN_PEPPER = process.env.TICKET_TOKEN_PEPPER || process.env.TOKEN_PEPPER;
   const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qm-e2e-up-'));
   process.env.UPLOADS_DIR = uploadsDir;
+  require('../../src/config').uploadsDir = uploadsDir; // مصدر وحيد لمجلد الرفع و/media
   const { createApp } = require(path.join(SRC, 'app.js'));
   const app = createApp();
   const dbm = require(path.join(SRC, 'database')); const db = dbm.getDb();
