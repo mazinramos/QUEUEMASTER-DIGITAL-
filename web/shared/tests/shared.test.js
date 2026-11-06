@@ -113,3 +113,19 @@ test('qr: matrix + svg for a ticket url', () => {
   assert.equal(m.isDark(0, 0), true, 'finder pattern corner is dark');
   const s = qr.svg(url, { margin: 4 }); assert.match(s, /^<svg [^>]*viewBox="0 0 \d+ \d+"/); assert.match(s, /<path fill="#000" d="M/);
 });
+
+test('i18n.pick understands every naming style the backend uses', () => {
+  const i = createI18n({});
+  assert.equal(i.pick({ nameAr: 'تحاليل', nameEn: 'Laboratory' }), 'تحاليل');
+  assert.equal(i.pick({ ar: 'تحاليل', en: 'Laboratory' }), 'تحاليل');
+  assert.equal(i.pick({ number: 2, name: 'شباك 2', nameEn: 'Counter 2' }), 'شباك 2');
+  i.setLang('en');
+  assert.equal(i.pick({ nameAr: 'تحاليل', nameEn: 'Laboratory' }), 'Laboratory'); assert.equal(i.pick({ ar: 'تحاليل', en: 'Laboratory' }), 'Laboratory');
+  assert.equal(i.pick({ number: 2, name: 'شباك 2', nameEn: 'Counter 2' }), 'Counter 2'); assert.equal(i.pick({ name: 'شباك 2' }), 'شباك 2');
+});
+test('api.setCsrf is used for the next mutation without another fetch', async () => {
+  const f = mkFetch([{ status: 200, body: { ok: true, data: { x: 1 } } }]);
+  const api = createApi({ fetch: f }); api.setCsrf('rotated');
+  await api.post('/api/queue/call-next', {}, { csrf: true });
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0].init.headers['X-CSRF-Token'], 'rotated');
+});

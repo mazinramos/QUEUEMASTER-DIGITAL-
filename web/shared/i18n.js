@@ -133,14 +133,17 @@
       if (timeZone) o.timeZone = timeZone;
       try { return new Intl.DateTimeFormat(loc(), o).format(d); } catch (e) { delete o.timeZone; return new Intl.DateTimeFormat(loc(), o).format(d); }
     }
-    /* picks name_ar / name_en (or name) from a server object, falling back to the other language */
+    /* picks the language variant from a server object. Accepts name_ar/name_en, nameAr/nameEn, {ar,en}, and name + nameEn
+       (the real backend uses all of these in different endpoints); falls back to the other language, then to plain `name`. */
     function pick(obj, base) {
       if (!obj) return '';
       if (typeof obj === 'string') return obj;
       base = base || 'name';
-      var a = obj[base + '_ar'], e = obj[base + '_en'];
-      var v = lang === 'ar' ? (a || e) : (e || a);
-      return v || obj[base] || '';
+      var a = obj[base + '_ar'] || obj[base + 'Ar'] || obj.ar || '';
+      var e = obj[base + '_en'] || obj[base + 'En'] || obj.en || '';
+      var plain = typeof obj[base] === 'string' ? obj[base] : '';
+      var v = lang === 'ar' ? (a || plain || e) : (e || a || plain);
+      return v || '';
     }
     function errorMessage(err) {
       var code = err && err.code;

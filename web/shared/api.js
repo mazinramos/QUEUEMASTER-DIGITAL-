@@ -60,6 +60,8 @@
       return csrfPromise;
     }
     function resetCsrf() { csrfToken = null; }
+    /* the server rotates the CSRF token on login; use the one it returns instead of fetching again */
+    function setCsrf(tok) { csrfToken = tok || null; }
 
     /* request(method, path, { query, body, csrf }) ; csrf:true for staff/session mutations */
     async function request(method, path, o) {
@@ -79,7 +81,7 @@
       }
     }
     var api = {
-      request: request, getCsrf: getCsrf, resetCsrf: resetCsrf, onUnauthenticated: onUnauthenticated,
+      request: request, getCsrf: getCsrf, resetCsrf: resetCsrf, setCsrf: setCsrf, onUnauthenticated: onUnauthenticated,
       get: function (p, o) { return request('GET', p, o); },
       post: function (p, body, o) { return request('POST', p, Object.assign({ body: body === undefined ? {} : body }, o || {})); },
       put: function (p, body, o) { return request('PUT', p, Object.assign({ body: body }, o || {})); },

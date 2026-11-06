@@ -108,7 +108,7 @@
       '<button class="qm-btn qm-btn--secondary" data-act="print">' + ic('printer', { size: 20 }) + esc(t('p.act.print')) + '</button>' +
       '<button class="qm-btn qm-btn--secondary" data-act="share">' + ic('share-2', { size: 20 }) + esc(t('p.act.share')) + '</button>' +
       '<button class="qm-btn qm-btn--secondary" data-act="copy">' + ic('copy', { size: 20 }) + esc(t('p.act.copy')) + '</button></div>' +
-      (finalState ? '' : smsCard(tk)) +
+      (finalState || (S.clinic && S.clinic.smsEnabled === false) ? '' : smsCard(tk)) +
       '<button class="qm-btn ' + (finalState ? 'qm-btn--lg' : 'qm-btn--secondary') + ' qm-btn--block" data-act="start">' + ic('ticket', { size: 20 }) + esc(t('p.act.new')) + '</button>' +
       '<button class="qm-btn qm-btn--ghost qm-btn--block" data-act="recover">' + esc(t('p.act.recover')) + '</button>';
   }
@@ -124,7 +124,7 @@
   }
 
   function recoverView() {
-    return '<div><h1 class="pt-h1" tabindex="-1">' + esc(t('p.rec.title')) + '</h1><p class="pt-sub">' + esc(t('p.rec.hint')) + '</p></div>' + errBanner(S.recErr) +
+    return '<div><h1 class="pt-h1" tabindex="-1">' + esc(t('p.rec.title')) + '</h1><p class="pt-sub">' + esc(t('p.rec.hint')) + '</p><p class="qm-hint">' + esc(t('p.rec.needSms')) + '</p></div>' + errBanner(S.recErr) +
       (S.recMsg ? '<div class="qm-banner qm-banner--info" role="status">' + ic('info', { size: 20 }) + '<div class="qm-banner__body">' + esc(S.recMsg) + '</div></div>' : '') +
       '<div class="qm-card pt-stack"><div class="qm-field"><label class="qm-label" for="rec-number">' + esc(t('p.rec.number')) + '</label>' +
       '<input class="qm-input qm-latin" id="rec-number" data-keep autocomplete="off" autocapitalize="characters" dir="ltr" maxlength="10" placeholder="A-025"></div>' +
@@ -187,7 +187,7 @@
   /* ---------- live: socket + polling fallback ---------- */
   var sc = QM.createSocketClient({});
   function QMsocketOnline() { return sc.status === 'online'; }
-  var poller = QM.createPoller({ fn: refreshTicket, isOnline: QMsocketOnline, fastMs: 5000, slowMs: 15000 });
+  var poller = QM.createPoller({ fn: refreshTicket, isOnline: function () { return !S.stale && QMsocketOnline(); }, fastMs: 5000, slowMs: 15000 });
   var svcPoller = QM.createPoller({ fn: function () { return loadClinic(true); }, isOnline: function () { return false; }, fastMs: 10000 });
   sc.onStatus(function () { if (S.view === 'ticket') render(); });
   sc.onConnect(function () { if (S.ticket && (S.view === 'ticket' || S.view === 'success')) refreshTicket(); });
@@ -233,7 +233,7 @@
     if (!phone) { S.smsErr = t('p.sms.bad'); render(); return; }
     S.smsErr = null; S.sms = 'sending'; render();
     try { await api.post('/api/public/tickets/' + encodeURIComponent(S.ticket.token) + '/sms', { phone: phone }); S.sms = 'ok'; S.ticket.smsRequested = true; persist(); }
-    catch (e) { S.sms = 'idle'; S.smsErr = i18n.errorMessage(e); }
+    catch (e) { S.sms = 'idle'; S.smsErr = (e.status === 501 || e.code === 'SMS_DISABLED' || e.code === 'INTERNAL') ? t('p.sms.unavailable') : i18n.errorMessage(e); }
     render();
   }
   async function saveImage() {
@@ -262,10 +262,10 @@
     var num = L.normalizeTicketNumber(document.getElementById('rec-number').value), last4 = document.getElementById('rec-last4').value.trim();
     S.recErr = null; S.recMsg = null;
     if (!num) { S.recErr = t('p.rec.bad'); render(); return; }
-    if (last4 && !/^\d{4}$/.test(last4)) { S.recErr = t('p.sms.bad'); render(); return; }
+    if (!/^\d{4}$/.test(last4)) { S.recErr = t('p.rec.last4bad'); render(); return; }
     S.busy = true; render();
     try {
-      var body = { number: num }; if (last4) body.phoneLast4 = last4;
+      var body = { number: num, phoneLast4: last4 };
       var d = await api.post('/api/public/tickets/recover', body, { query: apiClinicQuery() });
       if (d && typeof d.token === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(d.token)) { S.ticket = { token: d.token, status: 'waiting' }; S.busy = false; S.sig = ''; persist(); go('ticket'); return; }
       S.recMsg = t('p.rec.noToken');
