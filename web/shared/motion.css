@@ -1,0 +1,34 @@
+/* Motion system: transform + opacity only. Durations/curves come from tokens.css. Everything degrades under prefers-reduced-motion. */
+@keyframes qm-draw { to { stroke-dashoffset: 0; } }
+@keyframes qm-pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes qm-ring { 0% { opacity: .5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes qm-roll-in { from { opacity: 0; transform: translateY(40%); } to { opacity: 1; transform: none; } }
+@keyframes qm-roll-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-40%); } }
+@keyframes qm-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes qm-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+.qm-enter { animation: qm-fade-up var(--qm-dur-base) var(--qm-ease-out) both; }                 /* screen / view transition */
+.qm-pop { animation: qm-pop var(--qm-dur-emph) var(--qm-ease-out) both; }                       /* confirmation: ticket issued */
+.qm-roll { animation: qm-roll-in var(--qm-dur-base) var(--qm-ease-out) both; }                  /* a number changes */
+.qm-breathe { animation: qm-breathe 1.6s var(--qm-ease-in-out) infinite; }                      /* "approaching" */
+.qm-stagger > * { animation: qm-fade-up var(--qm-dur-base) var(--qm-ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.qm-stagger > *:nth-child(1) { --i: 0; } .qm-stagger > *:nth-child(2) { --i: 1; } .qm-stagger > *:nth-child(3) { --i: 2; } .qm-stagger > *:nth-child(4) { --i: 3; }
+.qm-stagger > *:nth-child(5) { --i: 4; } .qm-stagger > *:nth-child(6) { --i: 5; } .qm-stagger > *:nth-child(7) { --i: 6; } .qm-stagger > *:nth-child(8) { --i: 7; }
+.qm-stagger > *:nth-child(n+9) { --i: 8; }
+
+/* drawn check: <svg class="qm-check-draw" viewBox="0 0 48 48"><circle .../><path d="M14 25l7 7 13-15"/></svg> */
+.qm-check-draw { inline-size: 96px; block-size: 96px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.qm-check-draw circle { stroke-dasharray: 138; stroke-dashoffset: 138; animation: qm-draw var(--qm-dur-draw) var(--qm-ease-out) forwards; }
+.qm-check-draw path { stroke-dasharray: 34; stroke-dashoffset: 34; animation: qm-draw var(--qm-dur-emph) var(--qm-ease-out) calc(var(--qm-dur-draw) * .55) forwards; }
+
+/* "your turn" pulse: a ring expanding from the element (the ring is a pseudo-element, only transform/opacity move) */
+.qm-pulse { position: relative; }
+.qm-pulse::before, .qm-pulse::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid currentColor; opacity: 0; pointer-events: none; animation: qm-ring 1.6s var(--qm-ease-out) infinite; }
+.qm-pulse::after { animation-delay: .8s; }
+.qm-pulse--circle::before, .qm-pulse--circle::after { border-radius: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+  .qm-pulse::before, .qm-pulse::after { animation: none; opacity: 0; } .qm-breathe { animation: none; }
+  .qm-skeleton { animation: none; opacity: .75; } .qm-spinner, .qm-btn[aria-busy="true"]::after { animation-duration: 2.4s !important; animation-iteration-count: infinite !important; }
+}

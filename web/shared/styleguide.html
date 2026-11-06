@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>QueueMaster design system</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="motion.css">
+  <style>
+    .sg { padding-block: var(--qm-s-6) var(--qm-s-8); }
+    .sg-nav { position: sticky; inset-block-start: 0; z-index: 20; background: var(--qm-navy-900); color: #fff; }
+    .sg-nav .qm-container { display: flex; align-items: center; gap: var(--qm-s-4); flex-wrap: wrap; min-block-size: 56px; padding-block: var(--qm-s-2); }
+    .sg-nav label { display: inline-flex; align-items: center; gap: var(--qm-s-2); font-size: var(--qm-fs-sm); }
+    .sg-nav input[type=color] { inline-size: 44px; block-size: 44px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .sg h2 { padding-block-start: var(--qm-s-7); padding-block-end: var(--qm-s-2); }
+    .sg-lead { color: var(--qm-text-muted); max-inline-size: 66ch; margin-block-end: var(--qm-s-4); }
+    .sg-grid { display: grid; gap: var(--qm-s-4); grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .sg-swatch { display: grid; gap: var(--qm-s-2); font-size: var(--qm-fs-xs); line-height: var(--qm-lh-xs); }
+    .sg-swatch i { display: block; block-size: 56px; border-radius: var(--qm-radius-sm); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+    .sg-demo { padding-block: var(--qm-s-4); display: flex; flex-wrap: wrap; gap: var(--qm-s-3); align-items: center; }
+    .sg-two { display: grid; gap: var(--qm-s-5); grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+    .sg-bg { background: var(--qm-bg); padding: var(--qm-s-5); border-radius: var(--qm-radius); }
+    .sg-icons { display: grid; gap: var(--qm-s-3); grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+    .sg-icons div { display: grid; justify-items: center; gap: var(--qm-s-1); font-size: var(--qm-fs-xs); line-height: var(--qm-lh-xs); color: var(--qm-text-muted); padding-block: var(--qm-s-2); text-align: center; word-break: break-all; }
+    .sg code { font-family: var(--qm-font-latin); direction: ltr; unicode-bidi: isolate; font-size: var(--qm-fs-xs); background: var(--qm-surface-sunken); padding: 2px 6px; border-radius: 4px; }
+    .sg-type > div { display: flex; align-items: baseline; gap: var(--qm-s-4); padding-block: var(--qm-s-2); border-block-end: 1px solid var(--qm-border); }
+    .sg-type code { min-inline-size: 150px; }
+    .sg-space { display: flex; align-items: end; gap: var(--qm-s-4); flex-wrap: wrap; }
+    .sg-space div { display: grid; justify-items: center; gap: var(--qm-s-1); font-size: var(--qm-fs-xs); } .sg-space i { display: block; background: var(--brand-action); }
+  </style>
+</head>
+<body>
+<header class="sg-nav">
+  <div class="qm-container">
+    <strong>QueueMaster design system</strong>
+    <div class="qm-lang" role="group" aria-label="Language"><button type="button" data-lang="ar">العربية</button><button type="button" data-lang="en">EN</button></div>
+    <label>Brand colour <input type="color" id="sg-brand" value="#0F8F6B" aria-label="Brand colour"></label>
+    <span class="qm-caption" id="sg-contrast" style="color:#fff"></span>
+    <button class="qm-btn qm-btn--inverse qm-btn--sm" id="sg-replay" type="button">Replay motion</button>
+  </div>
+</header>
+
+<main class="sg qm-container">
+  <h1 class="qm-h1">QueueMaster design system</h1>
+  <p class="sg-lead">Rules: no emoji, no coloured boxes with coloured borders, no side-accent cards, no decorative gradients or blur. Status is text, icon and a dot in the status colour on the page itself; strong emphasis is one solid fill with white text. Spacing 4/8, two radii, one icon set (Lucide, stroke 1.75, 24 grid), motion uses only transform and opacity and respects <code>prefers-reduced-motion</code>. Change the brand colour above: only buttons and highlights move, status colours do not.</p>
+
+  <h2 class="qm-h2">Colour</h2>
+  <p class="sg-lead">Brand is the only injected value (<code>--brand</code>, via <code>QM.brand.apply</code>). The action colour is derived so white text on it is always at least 4.5:1.</p>
+  <div class="sg-grid" id="sg-colors"></div>
+
+  <h2 class="qm-h2">Type scale</h2>
+  <div class="sg-type" id="sg-type"></div>
+  <div class="sg-demo"><span class="qm-ticket-no">A-025</span><span class="qm-caption">ticket number: tabular figures, Latin letters and digits on every screen</span></div>
+
+  <h2 class="qm-h2">Spacing and radii</h2>
+  <div class="sg-space" id="sg-space"></div>
+  <div class="sg-demo"><div class="qm-card" style="inline-size:160px">Surface radius 16</div><button class="qm-btn qm-btn--secondary" type="button">Control radius 8</button></div>
+
+  <h2 class="qm-h2">Buttons</h2>
+  <div class="sg-demo">
+    <button class="qm-btn" type="button">Primary</button>
+    <button class="qm-btn qm-btn--secondary" type="button">Secondary</button>
+    <button class="qm-btn qm-btn--text" type="button">Text</button>
+    <button class="qm-btn qm-btn--danger" type="button">Danger</button>
+    <button class="qm-btn qm-btn--danger-text" type="button">Danger text</button>
+    <button class="qm-btn" type="button" aria-busy="true"><span>Loading</span></button>
+    <button class="qm-btn" type="button" disabled>Disabled</button>
+  </div>
+  <div class="sg-demo"><button class="qm-btn qm-btn--lg" type="button" data-icon="megaphone"> Call next</button><button class="qm-btn qm-btn--sm qm-btn--secondary" type="button">Small (44px high)</button><button class="qm-btn qm-btn--secondary qm-btn--icon" type="button" aria-label="Search" data-icon="search"></button></div>
+
+  <h2 class="qm-h2">Fields</h2>
+  <div class="sg-two">
+    <div class="qm-stack">
+      <div class="qm-field"><label class="qm-label" for="f1">Username</label><input class="qm-input" id="f1" placeholder="staff1"></div>
+      <div class="qm-field"><label class="qm-label" for="f2">Password</label><input class="qm-input" id="f2" type="password" aria-invalid="true" aria-describedby="f2e"><span class="qm-error-text" id="f2e" data-icon="circle-alert">Incorrect password</span></div>
+      <div class="qm-field"><label class="qm-label" for="f3">Service</label><select class="qm-select" id="f3"><option>Consultation</option><option>Laboratory</option></select></div>
+    </div>
+    <div class="qm-stack">
+      <label class="qm-check"><input type="checkbox" checked> <span>Notify me when my turn is near</span></label>
+      <label class="qm-row"><span class="qm-switch"><input type="checkbox" role="switch" checked><span class="qm-switch__track"></span></span><span>Sound</span></label>
+      <div class="qm-field"><label class="qm-label" for="f4">Reason</label><textarea class="qm-textarea" id="f4"></textarea></div>
+    </div>
+  </div>
+
+  <h2 class="qm-h2">Status</h2>
+  <p class="sg-lead">Text and dot in the status colour. No outline, no fill.</p>
+  <div class="sg-demo" id="sg-status"></div>
+
+  <h2 class="qm-h2">Notes and notices</h2>
+  <p class="sg-lead">Inline note: icon and text on the page. Notice: one solid bar for what the user must not miss.</p>
+  <div class="sg-two">
+    <div class="qm-stack">
+      <div class="qm-note" data-tone="info" data-icon="info"><div class="qm-note__body"><span class="qm-note__title">Information</span>Keep this page open to hear the alert.</div></div>
+      <div class="qm-note" data-tone="warn" data-icon="triangle-alert"><div class="qm-note__body"><span class="qm-note__title">Warning</span>Vibration is not supported on this device.</div></div>
+      <div class="qm-note" data-tone="error" data-icon="circle-alert"><div class="qm-note__body"><span class="qm-note__title">Error</span>Cannot reach the server.</div></div>
+      <div class="qm-note qm-note--ruled" data-tone="ok" data-icon="circle-check"><div class="qm-note__body"><span class="qm-note__title">Done</span>Ticket saved.</div></div>
+    </div>
+    <div class="qm-stack" style="--gap:12px">
+      <div class="qm-notice" data-tone="info" data-icon="info"><span class="qm-notice__body">Connected to Counter 2</span></div>
+      <div class="qm-notice" data-tone="warn" data-icon="wifi-off"><span class="qm-notice__body">Offline. Showing the last saved status.</span><button class="qm-btn qm-btn--inverse qm-btn--sm" type="button">Retry</button></div>
+      <div class="qm-notice" data-tone="error" data-icon="circle-alert"><span class="qm-notice__body">Session ended</span></div>
+      <div class="qm-notice" data-tone="ok" data-icon="circle-check"><span class="qm-notice__body">Service completed</span></div>
+      <div class="sg-demo"><button class="qm-btn qm-btn--secondary" data-toast="info" type="button">Toast</button><button class="qm-btn qm-btn--secondary" data-toast="ok" type="button">Toast ok</button><button class="qm-btn qm-btn--secondary" data-toast="error" type="button">Toast error</button><button class="qm-btn qm-btn--secondary" id="sg-modal" type="button">Dialog</button></div>
+    </div>
+  </div>
+
+  <h2 class="qm-h2">List and table</h2>
+  <div class="sg-two">
+    <ul class="qm-list qm-stagger" id="sg-list" role="radiogroup">
+      <li><button type="button" class="qm-list__item" role="radio" aria-checked="true"><span class="qm-list__lead">A</span><span class="qm-list__main"><span class="qm-list__title">Consultation</span><span class="qm-list__meta">3 waiting</span></span><span class="qm-list__check" data-icon="check"></span></button></li>
+      <li><button type="button" class="qm-list__item" role="radio" aria-checked="false"><span class="qm-list__lead">B</span><span class="qm-list__main"><span class="qm-list__title">Laboratory</span><span class="qm-list__meta">No one waiting</span></span><span class="qm-list__check" data-icon="check"></span></button></li>
+      <li><button type="button" class="qm-list__item" role="radio" aria-checked="false"><span class="qm-list__lead">C</span><span class="qm-list__main"><span class="qm-list__title">Radiology</span><span class="qm-list__meta">12 waiting</span></span><span class="qm-list__check" data-icon="check"></span></button></li>
+    </ul>
+    <div class="qm-table-wrap"><table class="qm-table"><thead><tr><th>Ticket</th><th>Service</th><th>Status</th><th>Wait</th></tr></thead><tbody>
+      <tr><td class="qm-num">A-025</td><td>Consultation</td><td><span class="qm-status" data-status="called">Called</span></td><td class="qm-num">04:12</td></tr>
+      <tr><td class="qm-num">A-026</td><td>Consultation</td><td><span class="qm-status" data-status="waiting">Waiting</span></td><td class="qm-num">02:40</td></tr>
+      <tr><td class="qm-num">B-011</td><td>Laboratory</td><td><span class="qm-status" data-status="skipped">Skipped</span></td><td class="qm-num">11:05</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <h2 class="qm-h2">Empty, loading</h2>
+  <div class="sg-two">
+    <div class="qm-empty"><span data-icon="inbox" data-size="48"></span><div class="qm-empty__title">No one is waiting</div><p class="qm-empty__text">New tickets appear here as soon as patients issue them.</p><button class="qm-btn qm-btn--secondary" type="button">Refresh</button></div>
+    <div class="qm-stack" aria-busy="true" aria-label="Loading"><span class="qm-skeleton qm-skeleton--title"></span><span class="qm-skeleton qm-skeleton--line"></span><span class="qm-skeleton qm-skeleton--line" style="inline-size:80%"></span><span class="qm-skeleton qm-skeleton--block"></span></div>
+  </div>
+
+  <h2 class="qm-h2">Ticket surface</h2>
+  <p class="sg-lead">One surface, a perforation line, the number as the hero. On <em>called</em> the whole surface becomes one solid brand fill with a pulse ring.</p>
+  <div class="sg-two"><div class="sg-bg"><article class="qm-ticket" id="sg-ticket-a"><div class="qm-ticket__part qm-stack" style="--gap:4px"><span class="qm-caption">Al-Amal Clinic</span><span class="qm-h3">Consultation</span></div><div class="qm-ticket__perf"></div><div class="qm-ticket__part qm-stack" style="--gap:8px;justify-items:center;text-align:center"><span class="qm-caption">Ticket number</span><span class="qm-ticket-no">A-025</span><span class="qm-status" data-status="waiting">Waiting</span></div></article></div>
+  <div class="sg-bg"><article class="qm-ticket" data-solid="true" id="sg-ticket-b"><div class="qm-ticket__part qm-stack" style="--gap:4px"><span class="qm-caption">Al-Amal Clinic</span><span class="qm-h3">Consultation</span></div><div class="qm-ticket__perf"></div><div class="qm-ticket__part qm-stack" style="--gap:8px;justify-items:center;text-align:center"><span class="qm-pulse qm-pulse--circle" style="display:inline-grid;place-items:center;inline-size:48px;block-size:48px;border-radius:50%;margin-block-end:8px" data-icon="bell-ring" data-size="24"></span><span class="qm-caption">Go to Counter 2</span><span class="qm-ticket-no">A-025</span><span class="qm-strong">Your turn</span></div></article></div></div>
+
+  <h2 class="qm-h2">Motion</h2>
+  <p class="sg-lead">Durations 120 / 240 / 480 / 800 ms, curves ease-out (enter) and ease-in-out (move). Use the Replay button in the top bar. With reduced motion everything lands instantly.</p>
+  <div class="sg-demo" id="sg-motion">
+    <div style="text-align:center"><svg class="qm-check-draw" viewBox="0 0 48 48" style="color:var(--qm-ok)" aria-hidden="true"><circle cx="24" cy="24" r="22"/><path d="M14 25l7 7 13-15"/></svg><div class="qm-caption">Check drawn</div></div>
+    <div style="text-align:center"><span class="qm-pulse qm-pulse--circle" style="display:inline-grid;place-items:center;inline-size:64px;block-size:64px;border-radius:50%;background:var(--brand-action);color:var(--brand-on)" data-icon="bell-ring" data-size="28"></span><div class="qm-caption">Pulse</div></div>
+    <div style="text-align:center"><span class="qm-ticket-no qm-roll" id="sg-roll" style="font-size:48px">3</span><div class="qm-caption">Number roll</div></div>
+    <div style="text-align:center;min-inline-size:120px"><div class="qm-progress" style="--p:.66"><i></i></div><div class="qm-caption">Progress</div></div>
+    <div style="text-align:center"><span class="qm-breathe" style="display:inline-block;color:var(--qm-st-approaching)" data-icon="hourglass" data-size="36"></span><div class="qm-caption">Approaching</div></div>
+  </div>
+
+  <h2 class="qm-h2">Icons</h2>
+  <div class="sg-icons" id="sg-icons"></div>
+</main>
+
+<div class="qm-toasts" id="sg-toasts" hidden></div>
+<script src="icons.js"></script>
+<script src="i18n.js"></script>
+<script src="brand.js"></script>
+<script src="motion.js"></script>
+<script src="ui.js"></script>
+<script src="styleguide.js"></script>
+</body>
+</html>
