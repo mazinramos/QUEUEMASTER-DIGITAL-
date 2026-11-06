@@ -22,17 +22,21 @@ function parseCookies(header) {
   return out;
 }
 
-function cookieOptions() {
-  return { httpOnly: true, sameSite: 'lax', path: '/', secure: config.session.secureCookie };
+// Secure لا يعمل على http:// (شبكة العيادة): المتصفح يرفض إرسال الكوكي فيبدو الدخول ناجحاً ثم يضيع.
+// false: بدون Secure | true: دائماً Secure (HTTPS فقط) | auto: Secure فقط إذا كان هذا الطلب HTTPS.
+function cookieOptions(req) {
+  const mode = config.session.secureCookie;
+  const secure = mode === 'true' ? true : mode === 'auto' ? !!(req && req.secure) : false;
+  return { httpOnly: true, sameSite: 'lax', path: '/', secure };
 }
 
-function createSession(res, staffId = null) {
+function createSession(req, res, staffId = null) {
   const sid = crypto.randomBytes(32).toString('base64url');
   const csrf = crypto.randomBytes(24).toString('base64url');
   const data = { csrf, createdAt: Date.now() };
   getDb().prepare('INSERT INTO sessions (sid, staff_id, data, expires_at) VALUES (?,?,?,?)')
     .run(hashSid(sid), staffId, JSON.stringify(data), new Date(Date.now() + idleMs()).toISOString());
-  res.cookie(COOKIE, sid, cookieOptions());
+  res.cookie(COOKIE, sid, cookieOptions(req));
   return { id: hashSid(sid), staffId, csrf, data };
 }
 
@@ -40,12 +44,16 @@ function destroySession(req, res) {
   if (req.session) getDb().prepare('DELETE FROM sessions WHERE sid = ?').run(req.session.id);
   req.session = null;
   req.staff = null;
-  if (res) res.clearCookie(COOKIE, cookieOptions());
+  if (res) res.clearCookie(COOKIE, cookieOptions(req));
 }
 
 function destroyStaffSessions(staffId, exceptSid = null) {
   if (exceptSid) getDb().prepare('DELETE FROM sessions WHERE staff_id = ? AND sid != ?').run(staffId, exceptSid);
   else getDb().prepare('DELETE FROM sessions WHERE staff_id = ?').run(staffId);
+}
+
+function destroyClinicSessions(clinicId) {
+  return getDb().prepare('DELETE FROM sessions WHERE staff_id IN (SELECT id FROM staff WHERE clinic_id = ?)').run(clinicId).changes;
 }
 
 function purgeExpired() {
@@ -89,5 +97,5 @@ function loadSession(req, res, next) {
 }
 
 module.exports = {
-  loadSession, createSession, destroySession, destroyStaffSessions, purgeExpired, parseCookies, hashSid,
+  loadSession, createSession, destroySession, destroyStaffSessions, destroyClinicSessions, purgeExpired, parseCookies, hashSid,
 };

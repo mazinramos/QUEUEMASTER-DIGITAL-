@@ -112,9 +112,18 @@ router.post('/:id/reset-password', validate(idSchema, 'params'), wrap(async (req
   getDb().prepare('UPDATE staff SET password_hash = ?, must_change_password = 1, updated_at = ? WHERE id = ?')
     .run(await hashPassword(pw), nowIso(), target.id);
   destroyStaffSessions(target.id);
+  require('../services/authService').unlockStaff(target.id);
   writeAudit(req, 'staff.reset_password', 'staff', target.id);
   ok(res, { temporaryPassword: pw, mustChangePassword: true });
 }));
+
+// فك قفل الدخول المؤقت يدوياً (موظف تجاوز عدد المحاولات)
+router.post('/:id/unlock', validate(idSchema, 'params'), (req, res) => {
+  const target = get(req);
+  const cleared = require('../services/authService').unlockStaff(target.id);
+  writeAudit(req, 'staff.unlock', 'staff', target.id);
+  ok(res, { unlocked: true, cleared });
+});
 
 // disable instead of delete (audit/ticket history references staff)
 router.delete('/:id', validate(idSchema, 'params'), (req, res) => {

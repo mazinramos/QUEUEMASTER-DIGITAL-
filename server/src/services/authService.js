@@ -3,28 +3,63 @@ const { getDb, nowIso } = require('../database');
 const config = require('../config');
 const { hashPassword, verifyPassword } = require('../utils/password');
 
-// ---- temporary lockout (in-memory; resets on restart. Schema has no column for it) ----
-const fails = new Map(); // key -> { count, lockedUntil }
-const lockKey = (username) => String(username).toLowerCase();
-function isLocked(username) {
-  const e = fails.get(lockKey(username));
-  if (!e) return false;
-  if (e.lockedUntil && e.lockedUntil > Date.now()) return true;
-  if (e.lockedUntil) fails.delete(lockKey(username));
-  return false;
+// ---- قفل الحساب المؤقت (محفوظ في جدول login_attempts) ----
+const L = () => config.rateLimit;
+const windowMs = () => Math.max(L().lockMinutes, 15) * 60 * 1000; // بعدها يُنسى العدّاد
+const ipThreshold = () => L().lockAfterFails * 5;
+
+function attemptKeys(staff, username, ip) {
+  return {
+    user: staff ? { scope: 'user', key: `s:${staff.id}`, staffId: staff.id }
+      : { scope: 'user', key: `u:${String(username).toLowerCase().slice(0, 64)}`, staffId: null },
+    ip: ip ? { scope: 'ip', key: String(ip).slice(0, 64), staffId: null } : null,
+  };
 }
-function recordFailure(username) {
-  const k = lockKey(username);
-  const e = fails.get(k) || { count: 0, lockedUntil: 0 };
-  e.count += 1;
-  if (e.count >= config.rateLimit.lockAfterFails) {
-    e.lockedUntil = Date.now() + config.rateLimit.lockMinutes * 60 * 1000;
-    e.count = 0;
+
+// هل أحد المفتاحين مقفول الآن؟ => { locked, retryAfterSec }
+function checkLock(keys) {
+  const db = getDb(); const now = Date.now(); let retry = 0;
+  for (const k of [keys.user, keys.ip]) {
+    if (!k) continue;
+    const row = db.prepare('SELECT locked_until FROM login_attempts WHERE scope = ? AND key = ?').get(k.scope, k.key);
+    const until = row && row.locked_until ? Date.parse(row.locked_until) : 0;
+    if (until > now) retry = Math.max(retry, Math.ceil((until - now) / 1000));
   }
-  fails.set(k, e);
+  return { locked: retry > 0, retryAfterSec: retry };
 }
-const clearFailures = (username) => fails.delete(lockKey(username));
-const _resetLockouts = () => fails.clear();
+
+function bump(k, threshold) {
+  const db = getDb(); const now = Date.now(); const iso = nowIso();
+  db.transaction(() => {
+    const row = db.prepare('SELECT count, updated_at FROM login_attempts WHERE scope = ? AND key = ?').get(k.scope, k.key);
+    let count = row && now - Date.parse(row.updated_at) <= windowMs() ? row.count : 0;
+    count += 1;
+    let lockedUntil = null;
+    if (count >= threshold) { lockedUntil = new Date(now + L().lockMinutes * 60 * 1000).toISOString(); count = 0; }
+    db.prepare(`INSERT INTO login_attempts (scope, key, staff_id, count, locked_until, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?)
+        ON CONFLICT(scope, key) DO UPDATE SET count = excluded.count, locked_until = excluded.locked_until,
+          staff_id = COALESCE(excluded.staff_id, login_attempts.staff_id), updated_at = excluded.updated_at`)
+      .run(k.scope, k.key, k.staffId, count, lockedUntil, iso, iso);
+  }).immediate();
+}
+function recordFailure(keys) {
+  bump(keys.user, L().lockAfterFails);
+  if (keys.ip) bump(keys.ip, ipThreshold());
+}
+// نجاح الدخول يصفّر عدّاد المستخدم فقط (عدّاد الـ IP لا يُصفَّر حتى لا يُستغل حساب صحيح)
+function clearFailures(keys) {
+  getDb().prepare('DELETE FROM login_attempts WHERE scope = ? AND key = ?').run(keys.user.scope, keys.user.key);
+}
+function unlockStaff(staffId) {
+  return getDb().prepare("DELETE FROM login_attempts WHERE scope = 'user' AND staff_id = ?").run(staffId).changes;
+}
+function purgeAttempts() {
+  const cutoff = new Date(Date.now() - windowMs()).toISOString();
+  return getDb().prepare('DELETE FROM login_attempts WHERE (locked_until IS NULL OR locked_until < ?) AND updated_at < ?')
+    .run(new Date().toISOString(), cutoff).changes;
+}
+const _resetLockouts = () => getDb().prepare('DELETE FROM login_attempts').run(); // اختبارات فقط
 
 let dummyHash = null;
 async function burnTime(password) { // equalize timing when username doesn't exist
@@ -67,5 +102,6 @@ function touchLogin(staffId) {
 }
 
 module.exports = {
-  isLocked, recordFailure, clearFailures, _resetLockouts, burnTime, serializeStaff, touchLogin,
+  attemptKeys, checkLock, recordFailure, clearFailures, unlockStaff, purgeAttempts, _resetLockouts,
+  burnTime, serializeStaff, touchLogin,
 };

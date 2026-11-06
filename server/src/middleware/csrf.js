@@ -4,7 +4,8 @@ const { fail } = require('../utils/respond');
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 // Public patient API and display (own cookie) are not staff-session endpoints.
-const EXEMPT_PREFIXES = ['/api/public/', '/api/display/'];
+// /api/super/ يُصادَق بترويسة رمز صريحة (ليست كوكي تلقائياً) فلا مجال لـ CSRF.
+const EXEMPT_PREFIXES = ['/api/public/', '/api/display/', '/api/super/'];
 
 function csrfProtect(req, res, next) {
   if (SAFE.has(req.method)) return next();

@@ -11,6 +11,7 @@ const { errorHandler, notFoundApi } = require('./middleware/errorHandler');
 const { loadSession, purgeExpired } = require('./middleware/session');
 const { csrfProtect } = require('./middleware/csrf');
 const { apiLimiter } = require('./middleware/rateLimit');
+const { requestLog } = require('./middleware/requestLog');
 
 function loadRoutes(app) {
   const dir = path.join(__dirname, 'routes');
@@ -36,6 +37,7 @@ function createApp({ autoMigrate = true } = {}) {
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback');
 
+  app.use(requestLog);
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -64,9 +66,15 @@ function createApp({ autoMigrate = true } = {}) {
   app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use('/api', apiLimiter, loadSession, csrfProtect);
 
-  app.get('/api/health', (req, res) =>
-    ok(res, { status: 'ok', time: new Date().toISOString(), version: config.version })
-  );
+  // لا أسرار هنا: حالة، قاعدة البيانات، مدة التشغيل، الإصدار
+  app.get('/api/health', (req, res) => {
+    let dbOk = true;
+    try { db.prepare('SELECT 1').get(); } catch { dbOk = false; }
+    const data = { status: dbOk ? 'ok' : 'degraded', db: dbOk ? 'ok' : 'error', uptime: Math.round(process.uptime()),
+      time: new Date().toISOString(), version: config.version };
+    return res.status(dbOk ? 200 : 503).json(dbOk ? { ok: true, data }
+      : { ok: false, error: { code: 'INTERNAL', message: 'database unavailable' }, data });
+  });
 
   const loaded = loadRoutes(app);
   app.set('loadedRoutes', loaded);
@@ -80,11 +88,14 @@ function createApp({ autoMigrate = true } = {}) {
 
   app.use('/api', notFoundApi);
   app.use(errorHandler);
-  if (config.env !== 'test') {
-    const t = setInterval(() => { try { purgeExpired(); } catch { /* db closed */ } }, 10 * 60 * 1000);
-    t.unref();
-  }
   purgeExpired();
+  if (config.env !== 'test') {
+    const t = setInterval(() => {
+      try { purgeExpired(); require('./services/authService').purgeAttempts(); } catch { /* db closed */ }
+    }, 10 * 60 * 1000);
+    t.unref();
+    app.locals.stopTimers = () => clearInterval(t);
+  }
   return app;
 }
 

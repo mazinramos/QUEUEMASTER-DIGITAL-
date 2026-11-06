@@ -4,7 +4,7 @@ const { z } = require('zod');
 const { getDb, nowIso } = require('../database');
 const { ok, wrap } = require('../utils/respond');
 const { E } = require('../utils/errors');
-const { hashPassword, verifyPassword } = require('../utils/password');
+const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
 const { validate } = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { writeAudit } = require('../middleware/audit');
@@ -38,21 +38,25 @@ const setupSchema = z.object({
 const INVALID = () => E.unauthenticated('Invalid username or password');
 
 router.get('/csrf', strictLimiter, (req, res) => {
-  const session = req.session || createSession(res, null);
+  const session = req.session || createSession(req, res, null);
   ok(res, { csrfToken: session.csrf });
 });
 
 router.post('/login', loginLimiter, validate(loginSchema), wrap(async (req, res) => {
   const { username, password, clinicId } = req.body;
   const db = getDb();
-  if (svc.isLocked(username)) throw E.rateLimited('Too many failed attempts. Try again later.');
-
   const rows = clinicId
     ? db.prepare('SELECT * FROM staff WHERE username = ? AND clinic_id = ?').all(username, clinicId)
     : db.prepare('SELECT * FROM staff WHERE username = ?').all(username);
   if (rows.length > 1) throw E.validation('clinicId is required for this username');
 
   const staff = rows[0];
+  const keys = svc.attemptKeys(staff, username, req.ip);
+  const lock = svc.checkLock(keys);
+  if (lock.locked) { // قبل فحص كلمة المرور: لا يُعرف إن كانت صحيحة أثناء القفل
+    res.set('Retry-After', String(lock.retryAfterSec));
+    throw E.rateLimited('Too many failed attempts. Try again later.');
+  }
   let valid = false;
   if (staff) {
     valid = await verifyPassword(staff.password_hash, password);
@@ -64,15 +68,20 @@ router.post('/login', loginLimiter, validate(loginSchema), wrap(async (req, res)
     await svc.burnTime(password);
   }
   if (!valid) {
-    svc.recordFailure(username);
+    svc.recordFailure(keys);
     writeAudit(req, 'auth.login_failed', 'staff', staff ? staff.id : null, { username },
       { clinicId: staff ? staff.clinic_id : null, staffId: null });
     throw INVALID();
   }
 
-  svc.clearFailures(username);
+  svc.clearFailures(keys);
+  if (needsRehash(staff.password_hash)) { // ترقية الخوارزمية/المعاملات بصمت بعد نجاح الدخول
+    try {
+      db.prepare('UPDATE staff SET password_hash = ?, updated_at = ? WHERE id = ?').run(await hashPassword(password), nowIso(), staff.id);
+    } catch (e) { console.error('[auth] rehash failed:', e.message); }
+  }
   if (req.session) destroySession(req, res); // new sid after login (anti session-fixation)
-  const session = createSession(res, staff.id);
+  const session = createSession(req, res, staff.id);
   svc.touchLogin(staff.id);
   const fresh = db.prepare('SELECT * FROM staff WHERE id = ?').get(staff.id);
   req.staff = fresh; req.session = session;
