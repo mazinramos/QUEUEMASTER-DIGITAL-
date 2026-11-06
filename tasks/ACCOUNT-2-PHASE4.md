@@ -22,3 +22,7 @@
 
 ## قبول
 `npm test` أخضر، أرقام الأداء حقيقية في التقرير، وتقرير بنفس القالب.
+
+## اكتشاف المشرف (إلزامي)
+- الشاشات كانت ترفض بـ `UNAUTHENTICATED` على Socket.IO الحقيقي، لأن `sockets/index.js` يبحث عن `services/displayAuth.js` ولم يكن موجوداً (اختباراتك تمرّر `resolveDisplay` مزيفاً فلم تكشفه). أضاف المشرف الجسر في فرع `integration` (`server/src/services/displayAuth.js` + اختبار). **ادمج `origin/integration` في فرعك** أو انسخ الملفين.
+- قبول إضافي: `node supervisor/e2e-flow.js` يجب أن ينجح كاملاً. الفحص الذي يفشل الآن: بعد عودة الشاشة لا تصلها لقطة `queue:updated` (هذا البند "ب" أعلاه).
