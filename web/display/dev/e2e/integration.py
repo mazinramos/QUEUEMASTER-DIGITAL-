@@ -31,6 +31,17 @@ class Api:
         except urllib.error.HTTPError as e:
             try: return e.code, json.loads(e.read() or b'{}')
             except Exception: return e.code, {}
+    def multipart(self, path, fields, fname=None, fdata=None, ctype='image/png', method='POST'):
+        import uuid
+        b = uuid.uuid4().hex; parts = []
+        for k, v in fields.items(): parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+        if fname: parts.append(f'--{b}\r\nContent-Disposition: form-data; name="file"; filename="{fname}"\r\nContent-Type: {ctype}\r\n\r\n'.encode() + fdata + b'\r\n')
+        parts.append(f'--{b}--\r\n'.encode())
+        r = urllib.request.Request(BASE + path, data=b''.join(parts), headers={'content-type': f'multipart/form-data; boundary={b}', 'X-CSRF-Token': self.csrf}, method=method)
+        try:
+            with self.op.open(r, timeout=15) as resp: return resp.status, json.loads(resp.read() or b'{}')
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read() or b'{}')
     def login(self, user):
         _, c = self.req('GET', '/api/auth/csrf'); self.csrf = c['data']['csrfToken']
         st, r = self.req('POST', '/api/auth/login', {'username': user, 'password': creds[user]})
@@ -129,6 +140,27 @@ try:
         sp2 = page.evaluate('window.__spoken')[n:]
         check('display:settings_updated الحقيقي يغيّر اللغة والصوت حياً', len(sp2) == 1 and sp2[0]['lang'].startswith('en') and abs(sp2[0]['volume'] - 0.3) < 1e-6, str(sp2))
 
+        # ---- الإعلانات الحقيقية (حساب 5): رفع من لوحة الأدمن -> advertisement:updated -> عرض على الشاشة ----
+        import io
+        from PIL import Image
+        buf = io.BytesIO(); Image.new('RGB', (800, 450), (20, 120, 200)).save(buf, 'PNG')
+        st, ad = admin.multipart('/api/admin/ads', {'title': 'إعلان اختبار', 'media_type': 'image', 'duration_sec': '4', 'priority': '5'}, 'promo.png', buf.getvalue())
+        check('رفع إعلان صورة عبر API حساب 5 الحقيقي', st == 201, f'{st} {ad}')
+        ad_id = ad['data']['ad']['id']; ad_url = ad['data']['ad']['url']
+        print('ad url:', ad_url)
+        page.wait_for_selector('#ad-stage img.is-in', timeout=8000)
+        ok_img = page.evaluate("(() => { const i = document.querySelector('#ad-stage img.is-in'); return i && i.complete && i.naturalWidth === 800 && i.getAttribute('src'); })()")
+        check('الإعلان المرفوع يظهر فوراً على الشاشة من /media (800px)', ok_img == ad_url, str(ok_img))
+        page.screenshot(path=f'{SHOTS}/integration-ad-image.png')
+        st, _ = admin.multipart('/api/admin/ads', {'title': 'نص', 'media_type': 'text', 'body_text': 'مرحباً بكم', 'duration_sec': '4', 'priority': '1'})
+        check('إنشاء إعلان نصي', st == 201, str(st))
+        st, _ = admin.req('PUT', f'/api/admin/ads/{ad_id}', {'is_active': False})
+        if st != 200: st, _ = admin.multipart(f'/api/admin/ads/{ad_id}', {'is_active': 'false'}, method='PUT')
+        check('تعطيل الإعلان', st == 200, str(st))
+        page.wait_for_function("!document.querySelector('#ad-stage img.is-in')", timeout=8000)
+        page.wait_for_selector('#ad-stage .ad-text.is-in', timeout=8000)
+        check('الإعلان المعطّل يختفي والنصي يحل مكانه', 'مرحباً' in page.inner_text('#ad-stage .ad-text.is-in'))
+        st, _ = admin.req('DELETE', f'/api/admin/ads/{ad_id}'); check('حذف الإعلان', st == 200, str(st))
         # ملفات الوسائط عبر السيرفر الحقيقي
         st = urllib.request.urlopen(BASE + '/display/vendor/socket.io.min.js').status; check('عميل socket.io المحلي يُخدم', st == 200)
         try: urllib.request.urlopen(BASE + '/media/..%2F..%2Fpackage.json'); ok = False

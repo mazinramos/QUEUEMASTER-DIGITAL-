@@ -286,6 +286,11 @@ test('media/audio: ar/en فقط وامتدادات صوت فقط', async () => {
   } finally { t.close(); }
 });
 
+test('مجلد dev/ محجوب من الخدمة الثابتة', async () => {
+  const t = await setup();
+  try { for (const p of ['/display/dev/package.json', '/display/dev/tests/core.test.js', '/display/dev']) assert.equal((await fetch(`${t.base}${p}`)).status, 404, p); } finally { t.close(); }
+});
+
 test('businessDate يحترم منطقة العيادة', () => {
   const d = new Date('2026-11-05T22:30:00Z');
   assert.equal(svc.businessDate('Africa/Cairo', d), '2026-11-06');

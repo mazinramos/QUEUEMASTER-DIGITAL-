@@ -181,6 +181,9 @@ function createDisplayRouter(deps = {}) {
     return svc.deleteDisplay(db, req.adminStaff.clinicId, id, req.adminStaff.id) ? ok(res, { deleted: true }) : fail(res, 404, 'NOT_FOUND', 'الشاشة غير موجودة');
   }));
 
+  /* ---- حجب أدوات التطوير من الـ static (app.js يخدم web/display كاملاً) ---- */
+  router.use('/display/dev', (req, res) => fail(res, 404, 'NOT_FOUND', 'Not found'));
+
   /* ---- الوسائط ---- */
   router.get('/media/audio/:lang/:file', media.audio);
   router.get('/media/:file', media.file);
