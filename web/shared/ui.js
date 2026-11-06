@@ -8,11 +8,14 @@
   function $(sel, el) { return (el || document).querySelector(sel); }
 
   var toastBox = null;
+  /* toast(msg, kind 'ok'|'error'|undefined, ms): solid bar, icon + text, leaves with a short fade */
   function toast(msg, kind, ms) {
     if (!toastBox) { toastBox = document.createElement('div'); toastBox.className = 'qm-toasts'; toastBox.setAttribute('role', 'status'); toastBox.setAttribute('aria-live', 'polite'); document.body.appendChild(toastBox); }
-    var el = document.createElement('div'); el.className = 'qm-toast' + (kind ? ' qm-toast--' + kind : ''); el.textContent = msg;
+    var el = document.createElement('div'); el.className = 'qm-toast' + (kind ? ' qm-toast--' + kind : '');
+    var ic = root.QM && root.QM.icon ? root.QM.icon(kind === 'error' ? 'circle-alert' : kind === 'ok' ? 'circle-check' : 'info', { size: 20 }) : '';
+    el.innerHTML = ic + '<span></span>'; el.lastChild.textContent = msg;
     toastBox.appendChild(el);
-    setTimeout(function () { el.remove(); }, ms || (kind === 'error' ? 6000 : 3500));
+    setTimeout(function () { el.classList.add('is-leaving'); setTimeout(function () { el.remove(); }, 200); }, ms || (kind === 'error' ? 6000 : 3500));
   }
 
   /* modal({ title, bodyHtml, actions:[{label, kind, value, keepOpen}], onOpen }) -> Promise<value|null> (null on dismiss) */

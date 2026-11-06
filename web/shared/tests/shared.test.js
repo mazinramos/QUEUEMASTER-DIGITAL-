@@ -129,3 +129,23 @@ test('api.setCsrf is used for the next mutation without another fetch', async ()
   await api.post('/api/queue/call-next', {}, { csrf: true });
   assert.equal(f.calls.length, 1); assert.equal(f.calls[0].init.headers['X-CSRF-Token'], 'rotated');
 });
+
+test('brand: derived action colour always reaches AA with white text, default included', () => {
+  const B = require('../brand.js');
+  assert.ok(Math.abs(B.contrast('#000000', '#FFFFFF') - 21) < 0.01);
+  for (const c of ['#0F8F6B', '#FFD500', '#00C2FF', '#E91E63', '#1A237E', '#FFFFFF', '#ff0', '#7CB342']) {
+    const d = B.derive(c); assert.ok(B.contrast(d.action, '#FFFFFF') >= 4.5, c + ' -> ' + d.action + ' ' + B.contrast(d.action, '#FFFFFF'));
+    assert.ok(B.contrast(d.actionHover, '#FFFFFF') >= 4.5); assert.ok(B.contrast(d.soft, '#FFFFFF') < 1.4, 'soft tint stays light');
+  }
+  assert.equal(B.derive('not-a-colour').brand, B.DEFAULT); assert.equal(B.derive('#1a237e').action, '#1A237E', 'already dark colours are kept');
+});
+test('brand: apply sets CSS variables, logoSrc only accepts same-origin paths, nameOf picks language', () => {
+  const B = require('../brand.js'); const set = {}; const doc = { documentElement: { style: { setProperty: (k, v) => { set[k] = v; } } } };
+  B.apply({ color: '#0F8F6B' }, doc); assert.ok(set['--brand'] && set['--brand-action'] && set['--brand-action-hover'] && set['--brand-on'] && set['--brand-soft']);
+  assert.equal(B.logoSrc({ logoUrl: '/media/logo.png' }), '/media/logo.png'); assert.equal(B.logoSrc({ logoUrl: 'http://evil/x.png' }), null); assert.equal(B.logoSrc({ logoUrl: '//evil/x.png' }), null);
+  assert.equal(B.nameOf({ name_ar: 'عيادة', name_en: 'Clinic' }, 'en'), 'Clinic'); assert.equal(B.nameOf({ name_ar: 'عيادة' }, 'en'), 'عيادة'); assert.equal(B.nameOf(null, 'ar', 'x'), 'x');
+});
+test('motion: setRolling changes text only when different', () => {
+  const M = require('../motion.js'); const el = { textContent: '3', classList: { remove() {}, add() {} }, offsetWidth: 0 };
+  assert.equal(M.setRolling(el, 3), false); assert.equal(M.setRolling(el, 2), true); assert.equal(el.textContent, '2');
+});

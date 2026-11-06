@@ -48,4 +48,4 @@
 .st-h2 { font-size: var(--qm-fs-lg); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: var(--qm-space-3); margin-block-end: var(--qm-space-3); }
 .st-scan { display: grid; gap: var(--qm-space-3); } .st-scan video { width: 100%; max-height: 40vh; background: #000; border-radius: var(--qm-radius); object-fit: cover; }
 .st-counter-btn { display: flex; align-items: center; gap: var(--qm-space-3); width: 100%; min-height: 4rem; padding: var(--qm-space-3) var(--qm-space-4); background: var(--qm-surface); border: 2px solid var(--qm-border); border-radius: var(--qm-radius-lg); font-weight: 700; font-size: var(--qm-fs-lg); cursor: pointer; text-align: start; }
-.st-counter-btn:hover { border-color: var(--qm-green-700); background: var(--qm-mint-100); }
+.st-counter-btn:hover { background: var(--brand-soft); border-color: var(--qm-border-strong); }

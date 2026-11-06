@@ -1,57 +1,95 @@
-/* QueueMaster design tokens. Owner: account 3. Read-only for other accounts.
-   Direction-neutral: use logical properties (margin-inline, padding-block, inset-inline-start...) everywhere. */
+/* QueueMaster design tokens (phase 5). Owner: account 3. Read-only for other accounts.
+   Rules: 4/8 spacing grid, one type scale, two radii, motion tokens, brand injected via --brand.
+   Legacy names (--qm-space-*, --qm-fs-*, --qm-gray-*, ...) are kept as aliases so admin/display keep working. */
 :root {
-  /* colour: deep navy, medical green, mint, white / light grey */
-  --qm-navy-900: #08203d;
-  --qm-navy-800: #0b2545;
-  --qm-navy-700: #13315c;
-  --qm-navy-600: #1d4278;
-  --qm-green-700: #087a55;   /* text/buttons on white: contrast >= 5:1 */
-  --qm-green-600: #0a9163;
-  --qm-green-500: #10a874;
-  --qm-mint-100: #e8f7f0;
-  --qm-mint-200: #cdeedf;
-  --qm-white: #ffffff;
-  --qm-gray-50: #f6f8fa;
-  --qm-gray-100: #edf1f4;
-  --qm-gray-200: #dce3e9;
-  --qm-gray-300: #c3ccd5;
-  --qm-gray-500: #5a6674;
-  --qm-gray-700: #2d3945;
-  --qm-red-700: #b42318;
-  --qm-red-100: #fdecea;
-  --qm-amber-700: #8a5a00;
-  --qm-amber-100: #fff3d6;
-  --qm-blue-700: #1a5799;
-  --qm-blue-100: #e6f0fb;
+  /* ---------- brand: only --brand is injected (QM.brand.apply). Everything else derives and is contrast-checked in JS ---------- */
+  --brand: #0F8F6B;
+  --brand-action: #0D7A5C;        /* button fill / brand text on white: >= 4.5:1 (QM.brand.apply recomputes this for any clinic colour) */
+  --brand-action-hover: #0A6A4F;
+  --brand-on: #FFFFFF;            /* text on --brand-action */
+  --brand-soft: #E9F4F0;          /* hover / selected row on white; small areas only */
 
-  /* semantic */
-  --qm-bg: var(--qm-gray-50);
-  --qm-surface: var(--qm-white);
-  --qm-text: var(--qm-navy-800);
-  --qm-text-muted: var(--qm-gray-500);
-  --qm-border: var(--qm-gray-200);
-  --qm-primary: var(--qm-green-700);
-  --qm-primary-hover: #066646;
-  --qm-primary-soft: var(--qm-mint-100);
-  --qm-focus: #1d6fe0;
+  /* ---------- neutrals: warm grey + deep navy structure ---------- */
+  --qm-navy-950: #071428; --qm-navy-900: #0A1F3C; --qm-navy-800: #0F2A4D; --qm-navy-700: #17375F; --qm-navy-600: #24497A; --qm-navy-500: #3A6091;
+  --qm-gray-0: #FFFFFF; --qm-gray-25: #FAF9F7; --qm-gray-50: #F5F4F1; --qm-gray-100: #ECEAE6; --qm-gray-200: #DDDAD4; --qm-gray-300: #C4C0B8;
+  --qm-gray-400: #9A968D; --qm-gray-500: #6B675F; --qm-gray-600: #4F4C46; --qm-gray-700: #36342F; --qm-gray-900: #1B1A17;
+  --qm-mint-100: #E4F3EC; --qm-mint-200: #C8E6D8;           /* tiny areas only */
 
-  /* spacing (4px base) */
-  --qm-space-1: .25rem; --qm-space-2: .5rem; --qm-space-3: .75rem; --qm-space-4: 1rem;
-  --qm-space-5: 1.5rem; --qm-space-6: 2rem; --qm-space-7: 3rem;
+  /* ---------- status colours: meaning only, never decoration. text = on white (AA), solid = fill behind white text (AA) ---------- */
+  --qm-st-waiting: #1F4F8F;     --qm-st-waiting-solid: #1F4F8F;
+  --qm-st-approaching: #8A5A00; --qm-st-approaching-solid: #A15C00;
+  --qm-st-called: #8A5A00;      --qm-st-called-solid: #A15C00;
+  --qm-st-serving: #0B7A4F;     --qm-st-serving-solid: #0B7A4F;
+  --qm-st-completed: #4F4C46;   --qm-st-completed-solid: #4F4C46;
+  --qm-st-skipped: #B42318;     --qm-st-skipped-solid: #B42318;
+  --qm-st-cancelled: #7A271A;   --qm-st-cancelled-solid: #7A271A;
+  --qm-st-offline: #4F4C46;     --qm-st-offline-solid: #36342F;
+  --qm-ok: #0B7A4F; --qm-warn: #8A5A00; --qm-danger: #B42318; --qm-danger-hover: #8F1B11; --qm-info: #1F4F8F;
+  --qm-warn-solid: #A15C00;
 
-  /* shape + elevation: flat, light shadows only */
-  --qm-radius-sm: 8px; --qm-radius: 12px; --qm-radius-lg: 18px; --qm-radius-pill: 999px;
-  --qm-shadow-1: 0 1px 2px rgba(8, 32, 61, .06);
-  --qm-shadow-2: 0 2px 8px rgba(8, 32, 61, .08);
-  --qm-shadow-3: 0 8px 24px rgba(8, 32, 61, .14);
+  /* ---------- semantic ---------- */
+  --qm-bg: var(--qm-gray-25);
+  --qm-surface: var(--qm-gray-0);
+  --qm-surface-sunken: var(--qm-gray-50);
+  --qm-text: var(--qm-gray-900);
+  --qm-text-muted: var(--qm-gray-500);       /* 5.2:1 on white */
+  --qm-text-inverse: #FFFFFF;
+  --qm-border: var(--qm-gray-200);           /* hairlines + neutral field borders */
+  --qm-border-strong: var(--qm-gray-300);
+  --qm-primary: var(--brand-action);
+  --qm-primary-hover: var(--brand-action-hover);
+  --qm-primary-soft: var(--brand-soft);
+  --qm-focus: #1D6FE0;
+  --qm-overlay: rgba(10, 31, 60, .56);
 
-  /* type */
+  /* ---------- spacing: 4/8 grid ---------- */
+  --qm-s-1: 4px; --qm-s-2: 8px; --qm-s-3: 12px; --qm-s-4: 16px; --qm-s-5: 24px; --qm-s-6: 32px; --qm-s-7: 48px; --qm-s-8: 64px;
+  --qm-space-1: var(--qm-s-1); --qm-space-2: var(--qm-s-2); --qm-space-3: var(--qm-s-3); --qm-space-4: var(--qm-s-4);
+  --qm-space-5: var(--qm-s-5); --qm-space-6: var(--qm-s-6); --qm-space-7: var(--qm-s-7);
+  --qm-page-x: 16px;                          /* phone 16, tablet 24, desktop 32 (media queries below) */
+  --qm-touch: 44px;                           /* minimum target; 8px minimum gap between targets */
+  --qm-touch-lg: 56px;
+
+  /* ---------- radii: exactly two (+ round for dots/avatars) ---------- */
+  --qm-radius-sm: 8px;                        /* fields, buttons, small controls */
+  --qm-radius: 16px;                          /* surfaces: cards, sheets, ticket */
+  --qm-radius-lg: var(--qm-radius);
+  --qm-radius-pill: 999px;                    /* circles only (dots, avatar), never for buttons */
+
+  /* ---------- elevation: one layer each ---------- */
+  --qm-shadow-1: 0 1px 2px rgba(10, 31, 60, .08);
+  --qm-shadow-2: 0 4px 16px rgba(10, 31, 60, .12);
+  --qm-shadow-3: 0 8px 32px rgba(10, 31, 60, .18);
+
+  /* ---------- type: 14 / 16 / 20 / 24 / 32 / 48, fixed line heights ---------- */
   --qm-font: 'IBM Plex Sans Arabic', 'Inter', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
   --qm-font-latin: 'Inter', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', sans-serif;
-  --qm-fs-xs: .8125rem; --qm-fs-sm: .9375rem; --qm-fs-md: 1.0625rem; --qm-fs-lg: 1.25rem;
-  --qm-fs-xl: 1.625rem; --qm-fs-2xl: 2.25rem; --qm-fs-hero: 4rem;
-  --qm-touch: 48px;           /* minimum touch target */
-  --qm-touch-lg: 60px;
+  --qm-fs-xs: 14px;  --qm-lh-xs: 20px;       /* captions / meta only */
+  --qm-fs-sm: 14px;  --qm-lh-sm: 20px;
+  --qm-fs-md: 16px;  --qm-lh-md: 24px;       /* body, fields (16px stops iOS zoom) */
+  --qm-fs-lg: 20px;  --qm-lh-lg: 28px;
+  --qm-fs-xl: 24px;  --qm-lh-xl: 32px;
+  --qm-fs-2xl: 32px; --qm-lh-2xl: 40px;
+  --qm-fs-3xl: 48px; --qm-lh-3xl: 56px;
+  --qm-fs-ticket: clamp(64px, 22vw, 96px);   /* ticket number on phones */
+  --qm-fs-hero: 64px;                        /* legacy alias */
+  --qm-weight-regular: 400; --qm-weight-medium: 500; --qm-weight-strong: 600; --qm-weight-bold: 700;
+
+  /* ---------- motion: durations + two curves ---------- */
+  --qm-dur-fast: 120ms; --qm-dur-base: 240ms; --qm-dur-emph: 480ms; --qm-dur-draw: 800ms;
+  --qm-ease-out: cubic-bezier(.22, 1, .36, 1);      /* entering */
+  --qm-ease-in-out: cubic-bezier(.65, 0, .35, 1);   /* moving */
+
+  /* ---------- legacy aliases (admin / display still reference these) ---------- */
+  --qm-white: var(--qm-gray-0);
+  --qm-green-700: var(--qm-ok); --qm-green-600: var(--brand); --qm-green-500: var(--brand);
+  --qm-red-700: var(--qm-danger); --qm-red-100: #FBE9E7;
+  --qm-amber-700: var(--qm-warn); --qm-amber-100: #FBF0D9;
+  --qm-blue-700: var(--qm-info); --qm-blue-100: #E5EDF7;
 }
 html[lang="en"] { --qm-font: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+@media (min-width: 640px) { :root { --qm-page-x: 24px; } }
+@media (min-width: 1024px) { :root { --qm-page-x: 32px; } }
+@media (prefers-reduced-motion: reduce) {
+  :root { --qm-dur-fast: 1ms; --qm-dur-base: 1ms; --qm-dur-emph: 1ms; --qm-dur-draw: 1ms; }
+}

@@ -22,7 +22,7 @@
 .pt-svc { display: flex; align-items: center; gap: var(--qm-space-4); width: 100%; min-height: 4.5rem; padding: var(--qm-space-3) var(--qm-space-4); text-align: start;
   background: var(--qm-surface); border: 2px solid var(--qm-border); border-radius: var(--qm-radius-lg); cursor: pointer; }
 .pt-svc:hover { border-color: var(--qm-gray-300); }
-.pt-svc[aria-checked="true"] { border-color: var(--qm-green-700); background: var(--qm-mint-100); }
+.pt-svc[aria-checked="true"] { background: var(--brand-soft); border-color: var(--qm-border-strong); }
 .pt-svc__prefix { width: 3rem; height: 3rem; flex: none; border-radius: var(--qm-radius); background: var(--qm-navy-800); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: var(--qm-fs-lg); }
 .pt-svc__body { flex: 1; min-width: 0; } .pt-svc__name { font-weight: 600; font-size: var(--qm-fs-md); display: block; }
 .pt-svc__wait { color: var(--qm-text-muted); font-size: var(--qm-fs-sm); }
